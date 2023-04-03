@@ -1,9 +1,11 @@
 from rest_framework import status, permissions, views
 from rest_framework.response import Response
 import boto3
+from dotenv import load_dotenv
 
 BUCKET_NAME = 'lingagunga'
 
+load_dotenv()
 s3 = boto3.client('s3')
 
 
