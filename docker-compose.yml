@@ -1,0 +1,16 @@
+version: '3.3'
+
+services:
+  redis:
+    image: 'redis:latest'
+    ports:
+      - '6379:6379'
+
+  lingalunga:
+    build: .
+    image: macukadam/lingalunga
+    container_name: lingalunga
+    ports:
+      - '8000:8000'
+    depends_on:
+      - redis
