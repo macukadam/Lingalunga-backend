@@ -3,6 +3,11 @@ from rest_framework import status, permissions, views
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from accounts.serializers import UserRegistrationSerializer
+from rest_framework_simplejwt.views import TokenRefreshView
+
+
+class RefreshTokenView(TokenRefreshView):
+    pass
 
 
 class RegisterView(views.APIView):
