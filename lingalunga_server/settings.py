@@ -153,6 +153,6 @@ REDIS_DB = 0
 
 
 async def create_redis_client():
-    return aredis.StrictRedis(host='localhost', port=6379)
+    return aredis.StrictRedisCluster(host='localhost', port=6379)
 
 redis_client = asyncio.ensure_future(create_redis_client())

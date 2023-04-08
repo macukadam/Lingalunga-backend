@@ -26,4 +26,4 @@ RUN useradd -ms /bin/bash celery_user && \
 # Switch to the non-root user
 USER celery_user
 
-CMD ["uvicorn", "lingalunga_server.asgi:application", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+CMD ["uvicorn", "lingalunga_server.asgi:application", "--host", "0.0.0.0", "--port", "8000", "--reload", "--lifespan", "on"]
