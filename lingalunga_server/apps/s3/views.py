@@ -1,8 +1,11 @@
-from rest_framework import status, permissions, views
+from rest_framework import status, permissions
 from rest_framework.response import Response
 import boto3
 from dotenv import load_dotenv
 from lingalunga_server.settings import redis_client
+from django.http import JsonResponse
+from .tasks import dummy_task
+from adrf import views
 
 BUCKET_NAME = 'lingagunga'
 
@@ -55,3 +58,10 @@ class GetObjectUrls(views.APIView):
             urls.append(url)
 
         return Response({"urls": urls}, status=status.HTTP_200_OK)
+
+
+def call_dummy_task(request):
+    print("Calling dummy task")
+    task = dummy_task.apply_async(countdown=0)
+    response_data = {'task_id': task.id}
+    return JsonResponse(response_data)

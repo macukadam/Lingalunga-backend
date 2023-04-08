@@ -1,0 +1,12 @@
+version: '3.3'
+
+services:
+  lingalunga:
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/app
+
+  celery_worker:
+    command: hupper -m celery -A lingalunga_server worker -l info
+    volumes:
+      - .:/app

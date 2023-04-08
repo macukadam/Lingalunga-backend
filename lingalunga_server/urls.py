@@ -20,8 +20,9 @@ from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/accounts/', include('accounts.urls')),
-    path('api/s3/', include('s3.urls')),
+    path('api/accounts/', include('lingalunga_server.apps.accounts.urls')),
+    path('api/s3/', include('lingalunga_server.apps.s3.urls')),
+    path('api/openai/', include('lingalunga_server.apps.openai.urls')),
 ]
 
 if settings.DEBUG:

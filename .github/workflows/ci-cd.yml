@@ -19,8 +19,8 @@ jobs:
 
     - name: Build and test
       run: |
-        docker-compose build
-        docker-compose run --rm lingalunga python manage.py test
+        docker-compose -f docker-compose.yml build
+        docker-compose -f docker-compose.yml run --rm lingalunga python manage.py test
 
   deploy:
     needs: build_and_test
@@ -41,7 +41,7 @@ jobs:
     - name: Build and push Docker image
       run: |
         echo "${{ secrets.ENV }}" > .env
-        docker-compose build
+        docker-compose -f docker-compose.yml build
 
     - name: Push to Docker Hub
       run: |

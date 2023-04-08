@@ -2,8 +2,8 @@ from django.contrib.auth import authenticate
 from rest_framework import status, permissions, views
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
-from accounts.serializers import UserRegistrationSerializer
 from rest_framework_simplejwt.views import TokenRefreshView
+from lingalunga_server.apps.accounts.serializers import UserRegistrationSerializer
 
 
 class RefreshTokenView(TokenRefreshView):

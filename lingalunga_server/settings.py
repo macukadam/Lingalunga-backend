@@ -10,9 +10,10 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.1/ref/settings/
 """
 
+import aredis
+import asyncio
 from pathlib import Path
 import os
-import redis
 from datetime import timedelta
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -30,6 +31,11 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 
+CELERY_BROKER_URL = 'redis://redis:6379/0'
+CELERY_RESULT_BACKEND = 'redis://redis:6379/0'
+CELERY_ACCEPT_CONTENT = ['application/json']
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TASK_SERIALIZER = 'json'
 
 # Application definition
 
@@ -41,8 +47,9 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
-    'accounts',
-    's3',
+    'lingalunga_server.apps.accounts.apps.AccountsConfig',
+    'lingalunga_server.apps.s3.apps.S3Config',
+    'lingalunga_server.apps.openai.apps.OpenaiConfig',
 ]
 
 REST_FRAMEWORK = {
@@ -144,4 +151,8 @@ REDIS_HOST = 'redis'  # Use 'redis' as the hostname to connect to the Redis cont
 REDIS_PORT = 6379
 REDIS_DB = 0
 
-redis_client = redis.StrictRedis(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB)
+
+async def create_redis_client():
+    return aredis.StrictRedis(host='localhost', port=6379)
+
+redis_client = asyncio.ensure_future(create_redis_client())

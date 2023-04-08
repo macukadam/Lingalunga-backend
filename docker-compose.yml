@@ -14,3 +14,77 @@ services:
       - '8000:8000'
     depends_on:
       - redis
+
+  celery_worker:
+    image: macukadam/lingalunga
+    container_name: celery_worker
+    command: celery -A lingalunga_server worker -l info
+    depends_on:
+      - redis
+      - lingalunga
+
+  flower:
+    image: macukadam/lingalunga
+    container_name: flower
+    command: /bin/bash -c 'python -m asyncio -m celery -A lingalunga_server flower --basic_auth=$$FLOWER_USER:$$FLOWER_PASSWORD'
+    ports:
+      - '5555:5555'
+    depends_on:
+      - redis
+    environment:
+      - FLOWER_USER
+      - FLOWER_PASSWORD
+
+volumes:
+  nltk_data:
+
+# version: '2.4'
+
+# services:
+#   redis:
+#     image: 'redis:latest'
+#     ports:
+#       - '6379:6379'
+#     cpuset: '0'
+
+#   lingalunga:
+#     build: .
+#     image: macukadam/lingalunga
+#     container_name: lingalunga
+#     ports:
+#       - '8000:8000'
+#     depends_on:
+#       - redis
+#     volumes:
+#       - ./app:/app
+#       - nltk_data:/home/celery_user/nltk_data
+#     cpuset: '0'
+
+#   celery_worker:
+#     image: macukadam/lingalunga
+#     container_name: celery_worker
+#     command: celery -A lingalunga_server worker -l info
+#     depends_on:
+#       - redis
+#       - lingalunga
+#     volumes:
+#       - ./app:/app
+#       - nltk_data:/home/celery_user/nltk_data
+#     cpuset: '0'
+
+#   flower:
+#     image: macukadam/lingalunga
+#     container_name: flower
+#     command: /bin/bash -c 'python -m asyncio -m celery -A lingalunga_server flower --basic_auth=$$FLOWER_USER:$$FLOWER_PASSWORD'
+#     ports:
+#       - '5555:5555'
+#     depends_on:
+#       - redis
+#     environment:
+#       - FLOWER_USER
+#       - FLOWER_PASSWORD
+#     cpuset: '0'
+
+# volumes:
+#   nltk_data:
+
