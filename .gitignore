@@ -1,4 +1,7 @@
 .env
 venv/
 __pycache__/
-
+static/
+staticfiles/
+*.sqlite3
+logs/

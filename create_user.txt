@@ -1,0 +1,4 @@
+psql -U postgres
+ALTER USER postgres WITH PASSWORD 'postgres'
+docker-compose exec lingalunga python manage.py migrate
+docker-compose exec lingalunga python manage.py createsuperuser

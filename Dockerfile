@@ -9,11 +9,13 @@ COPY requirements.txt /app/
 
 RUN pip install nltk
 RUN python -m nltk.downloader -d /home/celery_user/nltk_data punkt
-RUN python -m nltk.downloader -d /home/celery_user/nltk_data omw
 RUN python -c "import nltk; nltk.download('punkt', download_dir='/home/celery_user/nltk_data')"
 
 # Install any needed packages specified in requirements.txt
 RUN pip install --trusted-host pypi.python.org -r requirements.txt
+
+# Install packages for connecting to PostgreSQL
+RUN apt-get update && apt-get install -y libpq5
 
 COPY . /app/
 
@@ -26,4 +28,4 @@ RUN useradd -ms /bin/bash celery_user && \
 # Switch to the non-root user
 USER celery_user
 
-CMD ["uvicorn", "lingalunga_server.asgi:application", "--host", "0.0.0.0", "--port", "8000", "--reload", "--lifespan", "on"]
+CMD ["gunicorn", "--timeout", "60", "lingalunga_server.asgi:application", "-k", "uvicorn.workers.UvicornWorker", "-w", "1", "-b", "0.0.0.0:8000"]

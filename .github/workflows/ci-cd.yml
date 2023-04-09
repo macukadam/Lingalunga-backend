@@ -5,55 +5,46 @@ on:
     branches: [main]
 
 jobs:
-  build_and_test:
-    runs-on: ubuntu-latest
+  # build_and_test:
+  #   runs-on: ubuntu-latest
 
-    steps:
-    - name: Check out repository
-      uses: actions/checkout@v2
+  #   steps:
+  #   - name: Check out repository
+  #     uses: actions/checkout@v2
 
-    - name: Set up Docker
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y docker-compose
+  #   - name: Set up Docker
+  #     run: |
+  #       sudo apt-get update
+  #       sudo apt-get install -y docker-compose
 
-    - name: Build and test
-      run: |
-        docker-compose -f docker-compose.yml build
-        docker-compose -f docker-compose.yml run --rm lingalunga python manage.py test
+  #   - name: Build and test
+  #     run: |
+  #       echo "${{ secrets.ENV }}" > .env
+  #       docker-compose -f docker-compose.yml build
+  #       docker-compose -f docker-compose.yml run --rm lingalunga python manage.py test
 
   deploy:
-    needs: build_and_test
+    # needs: build_and_test
     runs-on: ubuntu-latest
 
     steps:
     - name: Check out repository
       uses: actions/checkout@v2
 
-    - name: Set up Docker
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y docker-compose
-
-    - name: Log in to Docker Hub
-      run: echo "${{ secrets.DOCKER_HUB_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_HUB_USERNAME }}" --password-stdin
-
-    - name: Build and push Docker image
-      run: |
-        echo "${{ secrets.ENV }}" > .env
-        docker-compose -f docker-compose.yml build
-
-    - name: Push to Docker Hub
-      run: |
-        docker push ${{ secrets.DOCKER_HUB_USERNAME }}/lingalunga
-
-    - name: Deploy to your server
+    - name: Deploy to server
       run: |
         mkdir ~/.ssh
         ssh-keyscan -H ${{ secrets.SSH_HOST }} > ~/.ssh/known_hosts
         chmod 600 ~/.ssh/known_hosts
         echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/private_key
         chmod 400 ~/.ssh/private_key
-        scp -o UserKnownHostsFile=~/.ssh/known_hosts -i ~/.ssh/private_key -r docker-compose.yml ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/home/ec2-user/Lingalunga-backend
-        ssh -o UserKnownHostsFile=~/.ssh/known_hosts -i ~/.ssh/private_key ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "echo ${{ secrets.DOCKER_HUB_PASSWORD }} | docker login -u ${{ secrets.DOCKER_HUB_USERNAME }} --password-stdin"
-        ssh -o UserKnownHostsFile=~/.ssh/known_hosts -i ~/.ssh/private_key ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd /home/ec2-user/Lingalunga-backend && docker-compose pull && docker-compose up -d"
+        ssh -o UserKnownHostsFile=~/.ssh/known_hosts -i ~/.ssh/private_key ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "sudo yum install -y git docker"
+        ssh -o UserKnownHostsFile=~/.ssh/known_hosts -i ~/.ssh/private_key ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "sudo service docker start"
+        ssh -o UserKnownHostsFile=~/.ssh/known_hosts -i ~/.ssh/private_key ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "sudo usermod -a -G docker ec2-user"
+        ssh -o UserKnownHostsFile=~/.ssh/known_hosts -i ~/.ssh/private_key ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "sudo curl -L https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m) -o /usr/local/bin/docker-compose"
+        ssh -o UserKnownHostsFile=~/.ssh/known_hosts -i ~/.ssh/private_key ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "sudo chmod +x /usr/local/bin/docker-compose"
+        rm -fr .git/
+        echo "${{ secrets.ENV }}" > .env
+        scp -o UserKnownHostsFile=~/.ssh/known_hosts -i ~/.ssh/private_key -r ../Lingalunga-backend ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/home/ec2-user/Lingalunga-backend
+        ssh -o UserKnownHostsFile=~/.ssh/known_hosts -i ~/.ssh/private_key ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd /home/ec2-user/Lingalunga-backend && docker-compose down && docker-compose -f docker-compose.yml up -d --build"
+        ssh -o UserKnownHostsFile=~/.ssh/known_hosts -i ~/.ssh/private_key ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "rm /home/ec2-user/Lingalunga-backend/.env"

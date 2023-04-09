@@ -13,7 +13,7 @@ number_of_requests=$repeat
 time(
     for i in $(seq 1 $number_of_requests); do
       # echo "Sending request $i..."
-      curl -s -X GET "$url" >/dev/null & # The & symbol sends the request in the background
+      curl -s -X GET "$url"
 
       wait # Wait for all background jobs to finish
     done

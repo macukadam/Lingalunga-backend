@@ -1,6 +1,7 @@
 from django.urls import path
-from .views import generate_dummy_story
+from .views import StoryView, StoryList
 
 urlpatterns = [
-    path('generate-dummy-story/', generate_dummy_story, name='call_dummy_task'),
+    path('create-story/', StoryView.as_view(), name='create_story'),
+    path('stories/', StoryList.as_view(), name='stories'),
 ]

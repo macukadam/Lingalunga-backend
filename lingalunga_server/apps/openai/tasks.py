@@ -1,8 +1,7 @@
-from celery import shared_task
 from nltk.tokenize import sent_tokenize
 import httpx
-import asyncio
 import os
+# from lingalunga_server.celery import app
 
 api_key = os.getenv("OPENAI_API_KEY")
 
@@ -113,22 +112,14 @@ def split_text_into_sentences(text, language="english"):
     return sentences
 
 
-@shared_task
-def generate_story():
-    l1 = "French"
-    l2 = "English"
-    level = "B2"
-    theme = "mystery"
-    characters = "Carol and Bob"
-    length = 100
-    story, translate_story = asyncio.run(call_openai(
-        l1, l2, level, theme, characters, length))
+async def generate_story(l1, l2, level, theme, characters, length):
+    story, translate_story = await call_openai(
+        l1, l2, level, theme, characters, length)
 
-    split_french = split_text_into_sentences(story, language="french")
+    split_french = split_text_into_sentences(story, language=l1.lower())
     split_english = split_text_into_sentences(
-        translate_story, language="english")
+        translate_story, language=l2.lower())
 
-    # zip the sentences together
     result = list(zip(split_french, split_english))
     print(result)
     return result

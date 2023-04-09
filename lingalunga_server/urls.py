@@ -23,6 +23,7 @@ urlpatterns = [
     path('api/accounts/', include('lingalunga_server.apps.accounts.urls')),
     path('api/s3/', include('lingalunga_server.apps.s3.urls')),
     path('api/openai/', include('lingalunga_server.apps.openai.urls')),
+    path('accounts/', include('allauth.urls')),
 ]
 
 if settings.DEBUG:

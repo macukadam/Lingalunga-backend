@@ -6,85 +6,84 @@ services:
     ports:
       - '6379:6379'
 
+  db:
+    image: postgres:latest
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  pgbouncer:
+    image: edoburu/pgbouncer:latest
+    ports:
+      - '5432:5432'
+    depends_on:
+      - db
+    environment:
+      - DB_USER=${POSTGRES_USER}
+      - DB_PASSWORD=${POSTGRES_PASSWORD}
+      - DB_HOST=db
+      - DB_NAME=${POSTGRES_DB}
+      - POOL_MODE=transaction
+      - ADMIN_USERS=postgres
+    volumes:
+      - ./init/pgbouncer.ini:/etc/pgbouncer/pgbouncer.ini
+
   lingalunga:
     build: .
     image: macukadam/lingalunga
     container_name: lingalunga
-    ports:
-      - '8000:8000'
     depends_on:
       - redis
+      - db
+    volumes:
+      - static_volume:/app/staticfiles
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_HOST=pgbouncer
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@pgbouncer:5432/${POSTGRES_DB}
+
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+    ports:
+      - '80:80'
+    depends_on:
+      - lingalunga
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - static_volume:/static
+      - ./logs/nginx:/var/log/nginx
 
   celery_worker:
     image: macukadam/lingalunga
     container_name: celery_worker
     command: celery -A lingalunga_server worker -l info
     depends_on:
-      - redis
       - lingalunga
 
   flower:
     image: macukadam/lingalunga
     container_name: flower
-    command: /bin/bash -c 'python -m asyncio -m celery -A lingalunga_server flower --basic_auth=$$FLOWER_USER:$$FLOWER_PASSWORD'
+    command: /bin/bash -c 'celery -A lingalunga_server flower --basic_auth=$$FLOWER_USER:$$FLOWER_PASSWORD'
     ports:
       - '5555:5555'
     depends_on:
-      - redis
+      - celery_worker
     environment:
       - FLOWER_USER
       - FLOWER_PASSWORD
 
 volumes:
+  postgres_data:
   nltk_data:
-
-# version: '2.4'
-
-# services:
-#   redis:
-#     image: 'redis:latest'
-#     ports:
-#       - '6379:6379'
-#     cpuset: '0'
-
-#   lingalunga:
-#     build: .
-#     image: macukadam/lingalunga
-#     container_name: lingalunga
-#     ports:
-#       - '8000:8000'
-#     depends_on:
-#       - redis
-#     volumes:
-#       - ./app:/app
-#       - nltk_data:/home/celery_user/nltk_data
-#     cpuset: '0'
-
-#   celery_worker:
-#     image: macukadam/lingalunga
-#     container_name: celery_worker
-#     command: celery -A lingalunga_server worker -l info
-#     depends_on:
-#       - redis
-#       - lingalunga
-#     volumes:
-#       - ./app:/app
-#       - nltk_data:/home/celery_user/nltk_data
-#     cpuset: '0'
-
-#   flower:
-#     image: macukadam/lingalunga
-#     container_name: flower
-#     command: /bin/bash -c 'python -m asyncio -m celery -A lingalunga_server flower --basic_auth=$$FLOWER_USER:$$FLOWER_PASSWORD'
-#     ports:
-#       - '5555:5555'
-#     depends_on:
-#       - redis
-#     environment:
-#       - FLOWER_USER
-#       - FLOWER_PASSWORD
-#     cpuset: '0'
-
-# volumes:
-#   nltk_data:
-
+  static_volume:
