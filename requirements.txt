@@ -15,6 +15,6 @@ aredis==1.1.8
 aioboto3==11.1.0
 adrf==0.1.1
 psycopg[pool,c]==3.1.8
-django-allauth==0.54.0
 gunicorn==20.1.0
 django-cors-headers==3.14.0
+django-rest-framework-social-oauth2==1.1.0

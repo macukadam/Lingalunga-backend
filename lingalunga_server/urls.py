@@ -18,6 +18,7 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from .views import WelcomeView
+from oauth2_provider.views import AuthorizationView
 
 urlpatterns = [
     path('', WelcomeView.as_view()),
@@ -25,6 +26,7 @@ urlpatterns = [
     path('api/accounts/', include('lingalunga_server.apps.accounts.urls')),
     path('api/s3/', include('lingalunga_server.apps.s3.urls')),
     path('api/openai/', include('lingalunga_server.apps.openai.urls')),
+    path('authorize/', AuthorizationView.as_view(), name='authorize'),
 ]
 
 if settings.DEBUG:
