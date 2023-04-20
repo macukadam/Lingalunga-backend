@@ -1,4 +1,5 @@
 from django.db import models
+from lingalunga_server.apps.s3.models import Voice
 
 # Create your models here.
 
@@ -37,6 +38,8 @@ class Sentence(models.Model):
     audio_key = models.CharField(max_length=100, null=True, blank=True)
     story = models.ForeignKey(
         Story, on_delete=models.CASCADE, related_name='story')
+    voice = models.ForeignKey(
+        Voice, on_delete=models.CASCADE, null=True, blank=True)
     language = models.ForeignKey(Language, on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
 

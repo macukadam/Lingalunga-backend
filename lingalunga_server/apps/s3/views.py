@@ -1,9 +1,13 @@
+from .models import Voice
+from rest_framework.parsers import JSONParser
+from django.http import JsonResponse
 from rest_framework import status, permissions
 from rest_framework.response import Response
 from dotenv import load_dotenv
 from lingalunga_server.settings import redis_client
 from adrf import views
 import aioboto3
+from lingalunga_server.apps.openai.models import Language
 
 BUCKET_NAME = 'lingagunga'
 
@@ -57,3 +61,40 @@ class GetObjectUrls(views.APIView):
                 urls.append(url)
 
         return Response({"urls": urls}, status=status.HTTP_200_OK)
+
+
+class Voices(views.APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        voices = Voice.objects.all()
+        return JsonResponse(list(voices.values()), safe=False)
+
+    def post(self, request):
+        data = JSONParser().parse(request)
+        response_data = []
+
+        for voice_data in data:
+            language = voice_data['LanguageName'].split(' ')[-1]
+            Language.objects.get_or_create(name=language)
+
+            supported_engines = [Engine.objects.get_or_create(
+                name=engine)[0] for engine in voice_data['SupportedEngines']]
+            voice, created = Voice.objects.update_or_create(
+                id=voice_data['Id'],
+                defaults={
+                    'gender': voice_data['Gender'],
+                    'language_code': voice_data['LanguageCode'],
+                    'language_name': voice_data['LanguageName'],
+                    'name': voice_data['Name'],
+                }
+            )
+
+            voice.supported_engines.set(supported_engines)
+            response_data.append({
+                'id': voice.id,
+                'created': created,
+                'updated': not created
+            })
+
+        return JsonResponse(response_data, safe=False, status=200)

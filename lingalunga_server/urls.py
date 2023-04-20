@@ -17,13 +17,14 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from .views import WelcomeView
 
 urlpatterns = [
+    path('', WelcomeView.as_view()),
     path('admin/', admin.site.urls),
     path('api/accounts/', include('lingalunga_server.apps.accounts.urls')),
     path('api/s3/', include('lingalunga_server.apps.s3.urls')),
     path('api/openai/', include('lingalunga_server.apps.openai.urls')),
-    path('accounts/', include('allauth.urls')),
 ]
 
 if settings.DEBUG:

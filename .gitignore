@@ -5,3 +5,4 @@ static/
 staticfiles/
 *.sqlite3
 logs/
+*.log
