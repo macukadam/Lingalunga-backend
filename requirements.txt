@@ -10,8 +10,7 @@ nltk==3.8.1
 python-dotenv==1.0.0
 uvicorn==0.21.1
 flower==1.0.0
-redis==3.5.3
-aredis==1.1.8
+redis==4.5.4
 aioboto3==11.1.0
 adrf==0.1.1
 psycopg[pool,c]==3.1.8

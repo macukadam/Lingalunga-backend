@@ -4,14 +4,18 @@ from django.http import JsonResponse
 from rest_framework import status, permissions
 from rest_framework.response import Response
 from dotenv import load_dotenv
-from lingalunga_server.settings import redis_client
+from lingalunga_server.settings import redis_pool
 from adrf import views
 import aioboto3
 from lingalunga_server.apps.openai.models import Language
-
-BUCKET_NAME = 'lingagunga'
+from lingalunga_server.apps.s3.models import Engine
+import redis.asyncio as redis
+import os
 
 load_dotenv()
+
+CACHE_TIME = os.getenv("CACHE_TIME", 3600)
+BUCKET_NAME = os.getenv("BUCKET_NAME", "lingalunga")
 
 
 class GetAllFiles(views.APIView):
@@ -33,32 +37,32 @@ class GetObjectUrls(views.APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     async def get(self, request):
-        # Get a list of keys from the query parameters
-        keys = request.GET.getlist('key')
-        print(keys)
+        keys = request.data.get('keys', [])
 
         urls = []
+        keys_to_check = []
+        redis_client = redis.Redis(connection_pool=redis_pool)
+
+        for key in keys:
+            cached_url = await redis_client.get(key)
+            if cached_url:
+                print("Getting cached url")
+                urls.append(cached_url)
+            else:
+                keys_to_check.append(key)
+
         async with aioboto3.Session().client('s3') as s3:
-            for key in keys:
-                print(key)
-                # Try to get the URL from the Redis cache
-                cached_url = await redis_client.get(key)
-                print(cached_url)
-
-                if cached_url:
-                    url = cached_url.decode()
-                else:
-                    print("Not in cache")
-                    # Generate the URL and store it in the Redis cache
-                    url = await s3.generate_presigned_url(
-                        ClientMethod='get_object',
-                        Params={'Bucket': BUCKET_NAME, 'Key': key},
-                        ExpiresIn=3600  # 1 hour expiration
-                    )
-                    # Cache the URL for 1 hour
-                    await redis_client.setex(key, 3600, url)
-
+            for key in keys_to_check:
+                print("Generating permanent url")
+                url = await s3.generate_presigned_url(
+                    ClientMethod='get_object',
+                    Params={'Bucket': BUCKET_NAME, 'Key': key},
+                    ExpiresIn=CACHE_TIME)
+                await redis_client.setex(key, CACHE_TIME, url)
                 urls.append(url)
+
+        await redis_client.close()
+        await redis_client.connection_pool.disconnect()
 
         return Response({"urls": urls}, status=status.HTTP_200_OK)
 
@@ -68,7 +72,7 @@ class Voices(views.APIView):
 
     def get(self, request):
         voices = Voice.objects.all()
-        return JsonResponse(list(voices.values()), safe=False)
+        return JsonResponse(list(voices.values('gender', 'id', 'language_code', 'language_name', 'name', 'supported_engines')), safe=False)
 
     def post(self, request):
         data = JSONParser().parse(request)
@@ -76,7 +80,8 @@ class Voices(views.APIView):
 
         for voice_data in data:
             language = voice_data['LanguageName'].split(' ')[-1]
-            Language.objects.get_or_create(name=language)
+            code = voice_data['LanguageCode'].split('-')[0]
+            Language.objects.get_or_create(name=language, code=code)
 
             supported_engines = [Engine.objects.get_or_create(
                 name=engine)[0] for engine in voice_data['SupportedEngines']]

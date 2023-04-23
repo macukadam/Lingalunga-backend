@@ -4,19 +4,21 @@ import mimetypes
 
 
 async def synthesize_speech_and_upload_to_s3(text, output_format="mp3",
-                                             voice_id="Joanna",
                                              bucket_name="lingagunga",
-                                             key_prefix="audio/"):
+                                             key_prefix="audio/",
+                                             voice_id="Joanna",
+                                             engine="neural"):
     async with aioboto3.Session().client("polly") as polly:
         response = await polly.start_speech_synthesis_task(
             OutputFormat=output_format,
             Text=text,
             VoiceId=voice_id,
+            Engine=engine,
             OutputS3BucketName=bucket_name,
             OutputS3KeyPrefix=key_prefix,
         )
 
-    task_id = response["SynthesisTask"]["TaskId"]
+    task_id = 'audio/.' + response["SynthesisTask"]["TaskId"] + '.mp3'
     output_uri = response["SynthesisTask"]["OutputUri"]
     return output_uri, task_id
 
@@ -33,4 +35,5 @@ async def upload_image_to_s3(image_url, name, bucket_name="lingagunga", key_pref
                 response = await s3.put_object(Body=image, Bucket=bucket_name,
                                                Key=key_prefix + name
                                                + extention)
+            print(response)
             return response

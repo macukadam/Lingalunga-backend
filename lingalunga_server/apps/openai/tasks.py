@@ -39,8 +39,8 @@ def get_image_prompt(title, theme, characters):
     return f"An illustration representing the story {title} with the theme {theme} and the characters {characters}."
 
 
-def get_title_prompt(theme, characters):
-    return f"Generate a creative title for a story with the theme {theme} and the characters {characters}."
+def get_title_prompt(lang, theme, characters):
+    return f"Generate a creative title for a story with the theme {theme} and the characters {characters} in {lang}."
 
 
 def get_translate_story_prompt(l1, l2, story_part):
@@ -59,8 +59,6 @@ async def get_request(url, headers):
     async with httpx.AsyncClient(timeout=60) as client:
         response = await client.get(url, headers=headers)
         response_json = response.json()
-        print(response_json)
-
     return response_json
 
 
@@ -136,8 +134,8 @@ async def generate_image_url(title, theme, characters):
     return get_image_url
 
 
-async def generate_title(theme, characters):
-    prompt = get_title_prompt(theme, characters)
+async def generate_title(lang, theme, characters):
+    prompt = get_title_prompt(lang, theme, characters)
     data = data_chat([{"role": "user", "content": prompt}])
     response_json = await send_request(data, complation_url, headers)
     title = response_json["choices"][0]["message"]["content"].strip()[1:-1]
@@ -145,7 +143,7 @@ async def generate_title(theme, characters):
 
 
 async def generate_story(l1, l2, level, theme, characters, length, with_image):
-    title = await generate_title(theme, characters)
+    title = await generate_title(l1, theme, characters)
     get_image_url = None
     if with_image:
         get_image_url = await generate_image_url(title, theme, characters)

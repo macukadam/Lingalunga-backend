@@ -8,7 +8,14 @@ from lingalunga_server.apps.s3.tasks import synthesize_speech_and_upload_to_s3, 
 from adrf import views
 from rest_framework import generics
 from .serializers import StorySerializer
-# from asgiref.sync import sync_to_async
+
+
+class LanguageView(views.APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    async def get(self, request):
+        languages = [lang async for lang in Language.objects.all().order_by('name').values('name', 'code').distinct()]
+        return JsonResponse({"languages": languages}, status=200)
 
 
 class StoryList(generics.ListAPIView):
@@ -16,6 +23,14 @@ class StoryList(generics.ListAPIView):
 
     queryset = Story.objects.all()
     serializer_class = StorySerializer
+
+
+class StorySentencesView(views.APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    async def get(self, request, id):
+        sentences = [sentence async for sentence in Sentence.objects.filter(story=id).values('text', 'audio_key')]
+        return JsonResponse({"sentences": sentences}, status=200)
 
 
 class StoryView(views.APIView):
@@ -29,7 +44,7 @@ class StoryView(views.APIView):
         stories = [s async for s in Story.objects.filter(
             native_language__name=l1,
             target_language__name=l2,
-            story_level=level).values('id', 'title')]
+            story_level=level).values('id', 'title', 'image_url')]
 
         return JsonResponse(stories, safe=False)
 
@@ -47,8 +62,16 @@ class StoryView(views.APIView):
         native_language = await Language.objects.aget(name=l1)
         target_language = await Language.objects.aget(name=l2)
 
-        voice_l1 = await Voice.objects.aget(id=voice_id_l1)
-        voice_l2 = await Voice.objects.aget(id=voice_id_l2)
+        voices = [v async for v
+                  in Voice.objects.filter(id__in=[voice_id_l1,
+                                                  voice_id_l2])
+                  .values_list('id', 'supported_engines__name')]
+
+        voice_dict = {name: min(val for n, val in voices if n == name)
+                      for name, _ in voices}
+
+        engine_l1 = list(voice_dict.values())[0]
+        engine_l2 = list(voice_dict.values())[1]
 
         title, story_text, image_url = await generate_story(l1, l2, level,
                                                             theme, characters,
@@ -58,22 +81,23 @@ class StoryView(views.APIView):
             await upload_image_to_s3(image_url, title)
 
         story = Story(title=title, native_language=native_language,
-                      target_language=target_language, story_level=level)
+                      target_language=target_language, story_level=level,
+                      image_url="images/" + title + ".png")
         await story.asave()
 
         for native_sentence, target_sentence in story_text:
-            _, task_id = await synthesize_speech_and_upload_to_s3(native_sentence, voice_id=voice_id_l1)
+            _, task_id = await synthesize_speech_and_upload_to_s3(native_sentence, voice_id=voice_id_l1, engine=engine_l1)
             native_sentence = Sentence(text=native_sentence,
                                        language=native_language,
                                        audio_key=task_id, story=story,
-                                       voice=voice_l1)
+                                       voice_id=voice_id_l1)
             await native_sentence.asave()
 
-            _, task_id = await synthesize_speech_and_upload_to_s3(target_sentence, voice_id=voice_id_l2)
+            _, task_id = await synthesize_speech_and_upload_to_s3(target_sentence, voice_id=voice_id_l2, engine=engine_l2)
             target_sentence = Sentence(text=target_sentence,
                                        language=target_language,
                                        audio_key=task_id, story=story,
-                                       voice=voice_l2)
+                                       voice_id=voice_id_l2)
             await target_sentence.asave()
 
         return JsonResponse({'status': 'success'})

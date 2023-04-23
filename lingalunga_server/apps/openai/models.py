@@ -6,6 +6,7 @@ from lingalunga_server.apps.s3.models import Voice
 
 class Language(models.Model):
     name = models.CharField(max_length=100)
+    code = models.CharField(max_length=3)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -21,13 +22,14 @@ class Story(models.Model):
         C1 = 'c1'
         C2 = 'c2'
 
-    title = models.CharField(max_length=100)
+    title = models.CharField(max_length=200)
     native_language = models.ForeignKey(
         Language, on_delete=models.CASCADE, related_name='native_language')
     target_language = models.ForeignKey(
         Language, on_delete=models.CASCADE, related_name='target_language')
     created_at = models.DateTimeField(auto_now_add=True)
     story_level = models.CharField(choices=Level.choices, max_length=2)
+    image_url = models.CharField(max_length=1000, null=True, blank=True)
 
     def __str__(self):
         return self.title

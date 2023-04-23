@@ -1,6 +1,6 @@
-import aredis
 import os
 from lingalunga_server.settings import *
+import redis.asyncio as redis
 
 DATABASES = {
     'default': {
@@ -10,4 +10,6 @@ DATABASES = {
 }
 
 DEBUG = True
-redis_client = aredis.StrictRedis(host='127.0.0.1', port=6379)
+
+redis_pool = redis.ConnectionPool(
+    host='localhost', port=6379, db=0, max_connections=10)

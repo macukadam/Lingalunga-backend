@@ -64,8 +64,6 @@ class GoogleLoginView(views.APIView):
                 'access': str(refresh.access_token),
             }
 
-            print(response_data)
-
             return Response(response_data, status=status.HTTP_200_OK)
         except Exception:
             traceback.print_exc()

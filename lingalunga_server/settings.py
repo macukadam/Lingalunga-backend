@@ -10,11 +10,11 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.1/ref/settings/
 """
 
-import aredis
 from pathlib import Path
 import os
 from datetime import timedelta
 import dotenv
+import redis.asyncio as redis
 
 dotenv.load_dotenv()
 
@@ -106,7 +106,7 @@ ROOT_URLCONF = 'lingalunga_server.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': ['templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -152,7 +152,7 @@ DATABASES = {
         'USER': os.environ['POSTGRES_USER'],
         'PASSWORD': os.environ['POSTGRES_PASSWORD'],
         'HOST': 'pgbouncer',
-        'PORT': 5432,  # Or 5432, depending on your settings
+        'PORT': 5433,
         'CONN_MAX_AGE': 0,
     }
 }
@@ -202,6 +202,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 REDIS_HOST = 'redis'  # Use 'redis' as the hostname to connect to the Redis container
 REDIS_PORT = 6379
 REDIS_DB = 0
+REDIS_MAX_CONNECTIONS = 10
 
-
-redis_client = aredis.StrictRedis(host='redis', port=6379)
+redis_pool = redis.ConnectionPool(
+    host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB, max_connections=REDIS_MAX_CONNECTIONS)
