@@ -2,13 +2,15 @@ import aioboto3
 import aiohttp
 import mimetypes
 
+AWS_DEFAULT_REGION = os.getenv("AWS_DEFAULT_REGION", "eu-central-1")
+
 
 async def synthesize_speech_and_upload_to_s3(text, output_format="mp3",
                                              bucket_name="lingagunga",
                                              key_prefix="audio/",
                                              voice_id="Joanna",
                                              engine="neural"):
-    async with aioboto3.Session().client("polly") as polly:
+    async with aioboto3.Session().client("polly", region_name=AWS_DEFAULT_REGION) as polly:
         response = await polly.start_speech_synthesis_task(
             OutputFormat=output_format,
             Text=text,
@@ -31,7 +33,7 @@ async def upload_image_to_s3(image_url, name, bucket_name="lingagunga", key_pref
             extention = mimetypes.guess_extension(resp.content_type)
 
             image = await resp.read()
-            async with aioboto3.Session().client("s3") as s3:
+            async with aioboto3.Session().client("s3", region_name=AWS_DEFAULT_REGION) as s3:
                 response = await s3.put_object(Body=image, Bucket=bucket_name,
                                                Key=key_prefix + name
                                                + extention)

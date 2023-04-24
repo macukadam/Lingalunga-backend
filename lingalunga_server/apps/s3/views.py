@@ -16,21 +16,7 @@ load_dotenv()
 
 CACHE_TIME = os.getenv("CACHE_TIME", 3600)
 BUCKET_NAME = os.getenv("BUCKET_NAME", "lingalunga")
-
-
-class GetAllFiles(views.APIView):
-    permission_classes = [permissions.IsAuthenticated]
-
-    async def get(self, request):
-        async with aioboto3.Session().client('s3') as s3:
-            response = await s3.list_objects_v2(Bucket=BUCKET_NAME)
-
-            obj_out = {}
-            for obj in response['Contents']:
-                folder, file = obj['Key'].split("/")
-                obj_out[folder] = obj_out.get(folder, []) + [file]
-
-        return Response(obj_out, status=status.HTTP_200_OK)
+AWS_DEFAULT_REGION = os.getenv("AWS_DEFAULT_REGION", "eu-central-1")
 
 
 class GetObjectUrls(views.APIView):
@@ -51,7 +37,7 @@ class GetObjectUrls(views.APIView):
             else:
                 keys_to_check.append(key)
 
-        async with aioboto3.Session().client('s3') as s3:
+        async with aioboto3.Session().client('s3', region_name=AWS_DEFAULT_REGION) as s3:
             for key in keys_to_check:
                 print("Generating permanent url")
                 url = await s3.generate_presigned_url(
