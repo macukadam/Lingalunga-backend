@@ -1,6 +1,7 @@
 import aioboto3
 import aiohttp
 import mimetypes
+import os
 
 AWS_DEFAULT_REGION = os.getenv("AWS_DEFAULT_REGION", "eu-central-1")
 
