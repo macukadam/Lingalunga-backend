@@ -2,6 +2,7 @@ import aioboto3
 import aiohttp
 import mimetypes
 import os
+import uuid
 
 AWS_DEFAULT_REGION = os.getenv("AWS_DEFAULT_REGION", "eu-central-1")
 
@@ -31,12 +32,8 @@ async def upload_image_to_s3(image_url, name, bucket_name="lingagunga", key_pref
         async with session.get(image_url) as resp:
             if resp.status != 200:
                 return None
-            extention = mimetypes.guess_extension(resp.content_type)
-
             image = await resp.read()
+            key = str(uuid.uuid4())
             async with aioboto3.Session().client("s3", region_name=AWS_DEFAULT_REGION) as s3:
-                response = await s3.put_object(Body=image, Bucket=bucket_name,
-                                               Key=key_prefix + name
-                                               + extention)
-            print(response)
-            return response
+                await s3.put_object(Body=image, Bucket=bucket_name, Key=key)
+            return key

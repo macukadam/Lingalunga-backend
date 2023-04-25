@@ -7,10 +7,6 @@ WORKDIR /app
 
 COPY requirements.txt /app/
 
-RUN pip install nltk
-RUN python -m nltk.downloader -d /home/celery_user/nltk_data punkt
-RUN python -c "import nltk; nltk.download('punkt', download_dir='/home/celery_user/nltk_data')"
-
 # Install any needed packages specified in requirements.txt
 RUN pip install --trusted-host pypi.python.org -r requirements.txt
 

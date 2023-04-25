@@ -1,4 +1,3 @@
-# from .tasks import generate_story
 from lingalunga_server.apps.openai.tasks import generate_story
 from rest_framework import permissions
 from django.http import JsonResponse
@@ -73,19 +72,23 @@ class StoryView(views.APIView):
         engine_l1 = list(voice_dict.values())[0]
         engine_l2 = list(voice_dict.values())[1]
 
-        title, story_text, image_url = await generate_story(l1, l2, level,
-                                                            theme, characters,
-                                                            length, generate_image)
-
+        title, image_url, story_splited, story = await generate_story(l1, l2, level,
+                                                                      theme, characters,
+                                                                      length, generate_image)
+        key = None
         if generate_image:
-            await upload_image_to_s3(image_url, title)
+            key = await upload_image_to_s3(image_url, title[0])
 
-        story = Story(title=title, native_language=native_language,
-                      target_language=target_language, story_level=level,
-                      image_url="images/" + title + ".png")
+        story = Story(title=title[0], title_translation=title[1],
+                      native_language=native_language,
+                      target_language=target_language,
+                      story_level=level,
+                      story_text=story,
+                      image_url=key)
+
         await story.asave()
 
-        for native_sentence, target_sentence in story_text:
+        for native_sentence, target_sentence in story_splited:
             _, task_id = await synthesize_speech_and_upload_to_s3(native_sentence, voice_id=voice_id_l1, engine=engine_l1)
             native_sentence = Sentence(text=native_sentence,
                                        language=native_language,

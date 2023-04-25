@@ -23,6 +23,7 @@ class Story(models.Model):
         C2 = 'c2'
 
     title = models.CharField(max_length=200)
+    title_translation = models.CharField(max_length=200)
     native_language = models.ForeignKey(
         Language, on_delete=models.CASCADE, related_name='native_language')
     target_language = models.ForeignKey(
@@ -30,6 +31,7 @@ class Story(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     story_level = models.CharField(choices=Level.choices, max_length=2)
     image_url = models.CharField(max_length=1000, null=True, blank=True)
+    story_text = models.TextField(null=True, blank=True)
 
     def __str__(self):
         return self.title
