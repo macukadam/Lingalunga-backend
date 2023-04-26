@@ -1,4 +1,4 @@
-from django.contrib.auth.models import User
+from lingalunga_server.apps.accounts.models import User
 from rest_framework import serializers
 
 
