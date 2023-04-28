@@ -11,7 +11,8 @@ from django.utils.http import urlsafe_base64_decode
 from django.utils.encoding import force_str
 from django.contrib.auth.tokens import default_token_generator
 from django.http import HttpResponse
-from lingalunga_server.apps.accounts.utils import send_verification_email
+from lingalunga_server.apps.accounts.utils import send_verification_email,\
+    google_get_or_create_user
 from lingalunga_server.apps.accounts.models import User
 from lingalunga_server.apps.accounts.utils import generate_email_verification_token, authenticate
 
@@ -79,7 +80,6 @@ class LoginView(views.APIView):
             return Response({'error': 'User does not exsist!'}, status=status.HTTP_401_UNAUTHORIZED)
         except Exception as e:
             traceback.print_exc()
-            print(e.__str__())
             if e.__str__() == 'Incorrect credentials.':
                 return Response({'error': 'Incorrect credentials.'}, status=status.HTTP_401_UNAUTHORIZED)
             elif e.__str__() == 'User is not active.':
@@ -100,17 +100,20 @@ class GoogleLoginView(views.APIView):
 
     def post(self, request):
         access_token = request.data.get('access_token')
+        email = request.data.get('email')
 
         try:
             strategy = load_strategy(request)
             backend = GoogleOAuth2(strategy=strategy)
-            user = backend.do_auth(access_token)
+            user = google_get_or_create_user(
+                backend, access_token, email=email)
 
             if user is None:
                 raise AuthException(backend)
 
-            user.is_active = True
-            user.save()
+            if not user.is_active:
+                user.is_active = True
+                user.save()
 
             refresh = RefreshToken.for_user(user)
             response_data = {

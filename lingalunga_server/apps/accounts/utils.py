@@ -33,6 +33,13 @@ def authenticate(email=None, password=None):
                 raise Exception('User is not active.')
         else:
             raise Exception('Incorrect credentials.')
-
     except User.DoesNotExist as e:
         raise e
+
+
+def google_get_or_create_user(backend, access_token, email):
+    try:
+        user = User.objects.get(email=email)
+    except User.DoesNotExist:
+        user = backend.do_auth(access_token)
+    return user

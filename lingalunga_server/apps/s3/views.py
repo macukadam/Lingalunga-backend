@@ -32,14 +32,12 @@ class GetObjectUrls(views.APIView):
         for key in keys:
             cached_url = await redis_client.get(key)
             if cached_url:
-                print("Getting cached url")
                 urls.append(cached_url)
             else:
                 keys_to_check.append(key)
 
         async with aioboto3.Session().client('s3', region_name=AWS_DEFAULT_REGION) as s3:
             for key in keys_to_check:
-                print("Generating permanent url")
                 url = await s3.generate_presigned_url(
                     ClientMethod='get_object',
                     Params={'Bucket': BUCKET_NAME, 'Key': key},
