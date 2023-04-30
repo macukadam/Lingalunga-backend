@@ -76,7 +76,7 @@ class StoryRequestView(views.APIView):
         if user.is_superuser:
             l1 = request.data['native_language']
             l2 = request.data['target_language']
-            level = request.data['selected_level']
+            level = request.data['selected_level'].lower()
             characters = request.data['characters']
             theme = request.data['theme']
             length = 10
