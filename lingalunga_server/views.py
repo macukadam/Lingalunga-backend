@@ -7,3 +7,10 @@ class WelcomeView(views.APIView):
 
     def get(self, request):
         return render(request, 'index.html')
+
+
+class Privacy(views.APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        return render(request, 'privacy_policy.html')

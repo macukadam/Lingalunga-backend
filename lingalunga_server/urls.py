@@ -17,7 +17,7 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
-from .views import WelcomeView
+from .views import WelcomeView, Privacy
 from oauth2_provider.views import AuthorizationView
 from lingalunga_server.apps.accounts.views import VerifyEmailView
 
@@ -28,6 +28,7 @@ urlpatterns = [
     path('api/s3/', include('lingalunga_server.apps.s3.urls')),
     path('api/openai/', include('lingalunga_server.apps.openai.urls')),
     path('authorize/', AuthorizationView.as_view(), name='authorize'),
+    path('privacy/', Privacy.as_view(), name='privacy'),
     path('verify-email/<str:uidb64>/<str:token>/',
          VerifyEmailView.as_view(), name='verify-email'),
 ]

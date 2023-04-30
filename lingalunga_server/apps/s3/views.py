@@ -55,7 +55,8 @@ class Voices(views.APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        voices = Voice.objects.all()
+        language = request.query_params.get('language', None)
+        voices = Voice.objects.filter(language_name=language).all()
         return JsonResponse(list(voices.values('gender', 'id', 'language_code', 'language_name', 'name', 'supported_engines')), safe=False)
 
     def post(self, request):

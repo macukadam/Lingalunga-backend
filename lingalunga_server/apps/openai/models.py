@@ -1,5 +1,6 @@
 from django.db import models
 from lingalunga_server.apps.s3.models import Voice
+from lingalunga_server.apps.accounts.models import User
 
 # Create your models here.
 
@@ -11,6 +12,18 @@ class Language(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class StoryParams(models.Model):
+    native_language = models.CharField(max_length=50)
+    target_language = models.CharField(max_length=50)
+    characters = models.CharField(max_length=50)
+    name = models.CharField(max_length=50)
+    theme = models.CharField(max_length=50)
+    selected_level = models.CharField(max_length=2, default='a1')
+    generate_image = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
 
 
 class Story(models.Model):

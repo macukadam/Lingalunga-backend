@@ -58,6 +58,18 @@ async def generate_image_url(title, theme, characters):
 
 
 def get_story_prompt_both_languages(l1, l2, level, theme, characters, length):
+    level_text = 'intermediate'
+    if level == "a1":
+        level_text = "beginner"
+    elif level == "a2":
+        level_text = "elementary"
+    elif level == "b1":
+        level_text = "intermediate"
+    elif level == "b2":
+        level_text = "upper intermediate"
+    elif level == "c1":
+        level_text = "advanced"
+
     prompt = f"""Format:
 title in {l1}
 title in {l2}
@@ -67,7 +79,7 @@ title in {l2}
 {l1} sentence
 {l2} sentence
 
-Write a {level} level {length} sentences long story in {l1} and {l2} with the theme {theme} and the characters {characters}.
+Write a {level_text} level {length} sentences long story in {l1} and {l2} with the theme {theme} and the characters {characters}.
 Each sentence has to be in a new line.
 """
     return prompt

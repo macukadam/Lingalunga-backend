@@ -91,6 +91,8 @@ class LoginView(views.APIView):
         response_data = {
             'refresh': str(refresh),
             'access': str(refresh.access_token),
+            'username': user.username,
+            'email': user.email,
         }
         return Response(response_data, status=status.HTTP_200_OK)
 
@@ -119,9 +121,21 @@ class GoogleLoginView(views.APIView):
             response_data = {
                 'refresh': str(refresh),
                 'access': str(refresh.access_token),
+                'username': user.username,
+                'email': user.email,
             }
 
             return Response(response_data, status=status.HTTP_200_OK)
         except Exception:
             traceback.print_exc()
             return Response({'error': 'Invalid token'}, status=status.HTTP_401_UNAUTHORIZED)
+
+
+class UpdateAppData(views.APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        user = request.user
+        user.app_data = request.data
+        user.save()
+        return Response(status=status.HTTP_200_OK)
