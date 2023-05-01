@@ -18,7 +18,7 @@ async def save_story(l1, l2, level, theme, characters, length, generate_image):
                               supported_engines__name='natural').values_list(
         'id', 'supported_engines__name').order_by('?').first()
 
-    if len(v1) > 0:
+    if not v1:
         v1 = Voice.objects.filter(language_name__icontains=l1).values_list(
             'id', 'supported_engines__name').order_by('?').first()
 
@@ -26,7 +26,7 @@ async def save_story(l1, l2, level, theme, characters, length, generate_image):
                               supported_engines__name='natural').values_list(
         'id', 'supported_engines__name').order_by('?').first()
 
-    if len(v2) > 0:
+    if not v2:
         v2 = Voice.objects.filter(language_name__icontains=l2).values_list(
             'id', 'supported_engines__name').order_by('?').first()
 
