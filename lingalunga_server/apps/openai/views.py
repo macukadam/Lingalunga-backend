@@ -14,8 +14,21 @@ async def save_story(l1, l2, level, theme, characters, length, generate_image):
     native_language = await Language.objects.aget(name=l1)
     target_language = await Language.objects.aget(name=l2)
 
-    v1 = Voice.objects.filter(language_name__icontains=l1).values_list('id', 'supported_engines__name').order_by('?').first()
-    v2 = Voice.objects.filter(language_name__icontains=l2).values_list('id', 'supported_engines__name').order_by('?').first()
+    v1 = Voice.objects.filter(language_name__icontains=l1,
+                              supported_engines__name='natural').values_list(
+        'id', 'supported_engines__name').order_by('?').first()
+
+    if len(v1) > 0:
+        v1 = Voice.objects.filter(language_name__icontains=l1).values_list(
+            'id', 'supported_engines__name').order_by('?').first()
+
+    v2 = Voice.objects.filter(language_name__icontains=l2,
+                              supported_engines__name='natural').values_list(
+        'id', 'supported_engines__name').order_by('?').first()
+
+    if len(v2) > 0:
+        v2 = Voice.objects.filter(language_name__icontains=l2).values_list(
+            'id', 'supported_engines__name').order_by('?').first()
 
     voices = [v1, v2]
 
@@ -135,6 +148,7 @@ class StoryView(views.APIView):
                                       'image_url',
                                       story_title=F('title_translation'))]
 
+        reverse_stories[::2], reverse_stories[1::2] = reverse_stories[1::2], reverse_stories[::2]
         stories.extend(reverse_stories)
 
         return JsonResponse(stories, safe=False)
