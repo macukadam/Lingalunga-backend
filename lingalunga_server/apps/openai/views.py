@@ -122,7 +122,12 @@ class StorySentencesView(views.APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     async def get(self, request, id):
+        swiped = request.GET.get('swiped', None)
         sentences = [sentence async for sentence in Sentence.objects.filter(story=id).values('text', 'audio_key')]
+
+        if swiped:
+            sentences[:-1:2], sentences[1::2] = sentences[1::2], sentences[:-1:2]
+
         return JsonResponse({"sentences": sentences}, status=200)
 
 
