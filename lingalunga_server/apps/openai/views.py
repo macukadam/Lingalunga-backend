@@ -138,22 +138,22 @@ class StoryView(views.APIView):
         l1 = request.data.get('l1')
         l2 = request.data.get('l2')
         level = request.data.get('level')
+        reverse = request.data.get('reverse')
 
-        stories = [s async for s in Story.objects.filter(
-            native_language__name=l1,
-            target_language__name=l2,
-            story_level=level).values('id',
-                                      'image_url',
-                                      story_title=F('title'))]
-
-        reverse_stories = [s async for s in Story.objects.filter(
-            native_language__name=l2,
-            target_language__name=l1,
-            story_level=level).values('id',
-                                      'image_url',
-                                      story_title=F('title_translation'))]
-
-        stories.extend(reverse_stories)
+        if reverse:
+            stories = [s async for s in Story.objects.filter(
+                native_language__name=l2,
+                target_language__name=l1,
+                story_level=level).values('id',
+                                          'image_url',
+                                          story_title=F('title_translation'))]
+        else:
+            stories = [s async for s in Story.objects.filter(
+                native_language__name=l1,
+                target_language__name=l2,
+                story_level=level).values('id',
+                                          'image_url',
+                                          story_title=F('title'))]
 
         return JsonResponse(stories, safe=False)
 
