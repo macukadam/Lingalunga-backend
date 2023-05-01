@@ -26,13 +26,13 @@ async def synthesize_speech_and_upload_to_s3(text, output_format="mp3",
     return output_uri, task_id
 
 
-async def upload_image_to_s3(image_url, name, bucket_name="lingagunga", key_prefix="images/"):
+async def upload_image_to_s3(image_url, name, bucket_name="lingagunga", key_prefix="images/", file_type="png"):
     async with aiohttp.ClientSession() as session:
         async with session.get(image_url) as resp:
             if resp.status != 200:
                 return None
             image = await resp.read()
-            key = key_prefix + '.' + str(uuid.uuid4())
+            key = key_prefix + '.' + str(uuid.uuid4()) + '.' + file_type
             async with aioboto3.Session().client("s3", region_name=AWS_DEFAULT_REGION) as s3:
                 await s3.put_object(Body=image, Bucket=bucket_name, Key=key)
             return key
