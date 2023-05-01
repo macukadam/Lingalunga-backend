@@ -148,7 +148,7 @@ class StoryView(views.APIView):
                                       'image_url',
                                       story_title=F('title_translation'))]
 
-        reverse_stories[::2], reverse_stories[1::2] = reverse_stories[1::2], reverse_stories[::2]
+        reverse_stories[:-1:2], reverse_stories[1::2] = reverse_stories[1::2], reverse_stories[:-1:2]
         stories.extend(reverse_stories)
 
         return JsonResponse(stories, safe=False)
