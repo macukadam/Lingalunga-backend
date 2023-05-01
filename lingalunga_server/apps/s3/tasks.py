@@ -1,6 +1,5 @@
 import aioboto3
 import aiohttp
-import mimetypes
 import os
 import uuid
 
@@ -22,7 +21,7 @@ async def synthesize_speech_and_upload_to_s3(text, output_format="mp3",
             OutputS3KeyPrefix=key_prefix,
         )
 
-    task_id = 'audio/.' + response["SynthesisTask"]["TaskId"] + '.mp3'
+    task_id = key_prefix + '.' + response["SynthesisTask"]["TaskId"] + '.mp3'
     output_uri = response["SynthesisTask"]["OutputUri"]
     return output_uri, task_id
 
@@ -33,7 +32,7 @@ async def upload_image_to_s3(image_url, name, bucket_name="lingagunga", key_pref
             if resp.status != 200:
                 return None
             image = await resp.read()
-            key = str(uuid.uuid4())
+            key = key_prefix + '.' + str(uuid.uuid4())
             async with aioboto3.Session().client("s3", region_name=AWS_DEFAULT_REGION) as s3:
                 await s3.put_object(Body=image, Bucket=bucket_name, Key=key)
             return key
