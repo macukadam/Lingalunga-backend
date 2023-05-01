@@ -122,7 +122,7 @@ class StorySentencesView(views.APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     async def get(self, request, id):
-        swiped = request.GET.get('swiped', None)
+        swiped = request.data.get('swiped')
         sentences = [sentence async for sentence in Sentence.objects.filter(story=id).values('text', 'audio_key')]
 
         if swiped:
@@ -147,6 +147,7 @@ class StoryView(views.APIView):
                 story_level=level).values('id',
                                           'image_url',
                                           story_title=F('title_translation'))]
+
         else:
             stories = [s async for s in Story.objects.filter(
                 native_language__name=l1,
