@@ -6,9 +6,11 @@ from lingalunga_server.apps.s3.models import Voice
 from lingalunga_server.apps.s3.tasks import synthesize_speech_and_upload_to_s3, upload_image_to_s3
 from adrf import views
 from rest_framework import generics
-from .serializers import StorySerializer
+from .serializers import StorySerializer, process_word_json
 from django.db.models import F
+import httpx
 
+TIMEOUT = 240
 
 async def save_story(l1, l2, level, theme, characters, length, generate_image):
     native_language = await Language.objects.aget(name=l1)
@@ -129,6 +131,20 @@ class StorySentencesView(views.APIView):
             sentences[:-1:2], sentences[1::2] = sentences[1::2], sentences[:-1:2]
 
         return JsonResponse({"sentences": sentences}, status=200)
+
+
+class WordInsertionView(views.APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    async def get(self, request):
+        url = "http://18.184.139.204/tokenize"
+        async with httpx.AsyncClient(timeout=TIMEOUT) as client:
+            response = await client.post(url, json=request.data)
+            body = response.json()
+
+            await process_word_json(body)
+
+            return JsonResponse({"success": "OK"}, status=200)
 
 
 class StoryView(views.APIView):
