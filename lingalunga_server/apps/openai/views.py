@@ -128,7 +128,7 @@ class StoryRequestView(views.APIView):
             story = await save_story(l1, l2, level, theme, characters, length,
                                      generate_image)
 
-            call_word_generation.delay(story.sentence_set.all())
+            generate_words.delay(story.pk)
 
         else:
             return JsonResponse({"error": "Your account cannot create a new story "}, status=403)
