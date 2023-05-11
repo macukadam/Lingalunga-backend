@@ -6,7 +6,7 @@ from adrf import views
 from lingalunga_server.apps.openai.tasks import generate_story
 from rest_framework import permissions
 from django.http import JsonResponse
-from .models import Story, Sentence, Language, StoryParams
+from .models import Story, Sentence, Language, StoryParams, Word
 from lingalunga_server.apps.s3.models import Voice
 from lingalunga_server.apps.s3.tasks import \
     synthesize_speech_and_upload_to_s3, upload_image_to_s3
@@ -153,46 +153,22 @@ class StorySentencesView(views.APIView):
 
     async def get(self, request, id):
         swiped = request.data.get('swiped')
-        sentences = [sentence async for sentence in Sentence.objects.filter(story=id).values('text', 'audio_key')]
+        sentences = [sentence async for sentence in Sentence.objects
+                     .filter(story=id).values('id', 'text', 'audio_key')]
 
         if swiped:
-            sentences[:-1:2], sentences[1::2] = sentences[1::2], sentences[:-1:2]
+            sentences[:-1:2], sentences[1::2] = sentences[1::2], \
+                sentences[:-1:2]
 
         return JsonResponse({"sentences": sentences}, status=200)
 
 
-class WordInsertionView(views.APIView):
-    permission_classes = [permissions.IsAuthenticated]
-
-    async def get(self, request):
-        url = "http://18.184.139.204/tokenize"
-        async with httpx.AsyncClient(timeout=TIMEOUT) as client:
-            response = await client.post(url, json=request.data)
-            body = response.json()
-
-            await process_word_json(body, 0)
-
-            return JsonResponse({"success": "OK"}, status=200)
-
-
-class WordInsertionByStoryView(views.APIView):
+class WordView(views.APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     async def get(self, request, id):
-        url = "http://18.184.139.204/tokenize"
-        sentences = Sentence.objects.filter(
-            story=id)
-
-        for sentence in sentences:
-            async with httpx.AsyncClient(timeout=TIMEOUT) as client:
-                data = {"sentence": sentence.text,
-                        'language': sentence.language.code}
-                response = await client.post(url, json=data)
-                body = response.json()
-
-                await process_word_json(body, sentence)
-
-        return JsonResponse({"success": "OK"}, status=200)
+        words = [w async for w in Word.objects.filter(sentence__id=id).values()]
+        return JsonResponse({"success": "OK", "words": words}, status=200)
 
 
 class StoryView(views.APIView):
