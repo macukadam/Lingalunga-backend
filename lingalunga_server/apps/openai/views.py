@@ -1,16 +1,42 @@
+import json
+import httpx
+from django.db.models import F
+from .serializers import StorySerializer, process_word_json
+from rest_framework import generics
+from adrf import views
 from lingalunga_server.apps.openai.tasks import generate_story
 from rest_framework import permissions
 from django.http import JsonResponse
 from .models import Story, Sentence, Language, StoryParams
 from lingalunga_server.apps.s3.models import Voice
-from lingalunga_server.apps.s3.tasks import synthesize_speech_and_upload_to_s3, upload_image_to_s3
-from adrf import views
-from rest_framework import generics
-from .serializers import StorySerializer, process_word_json
-from django.db.models import F
-import httpx
+from lingalunga_server.apps.s3.tasks import \
+    synthesize_speech_and_upload_to_s3, upload_image_to_s3
+from lingalunga_server.celery import app
+import asyncio
 
 TIMEOUT = 240
+
+
+@app.task
+def generate_words(id):
+    asyncio.run(call_word_generation(id))
+
+
+async def call_word_generation(id):
+    url = "http://18.184.139.204/tokenize"
+
+    sentences = [s async for s in Sentence.objects.filter(story_id=id)]
+
+    for sentence in sentences:
+        async with httpx.AsyncClient(timeout=TIMEOUT) as client:
+            data = {"sentence": sentence.text,
+                    'language': sentence.language.code}
+            response = await client.post(url, json=data)
+            body = response.json()
+            print(body)
+
+            await process_word_json(body, sentence)
+
 
 async def save_story(l1, l2, level, theme, characters, length, generate_image):
     native_language = await Language.objects.aget(name=l1)
@@ -76,6 +102,8 @@ async def save_story(l1, l2, level, theme, characters, length, generate_image):
 
     print("Voice objects created")
 
+    return story
+
 
 class StoryRequestView(views.APIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -97,7 +125,10 @@ class StoryRequestView(views.APIView):
             length = 10
             generate_image = request.data['generate_image']
 
-            await save_story(l1, l2, level, theme, characters, length, generate_image)
+            story = await save_story(l1, l2, level, theme, characters, length,
+                                     generate_image)
+
+            call_word_generation.delay(story.sentence_set.all())
 
         else:
             return JsonResponse({"error": "Your account cannot create a new story "}, status=403)
@@ -142,9 +173,30 @@ class WordInsertionView(views.APIView):
             response = await client.post(url, json=request.data)
             body = response.json()
 
-            await process_word_json(body)
+            await process_word_json(body, 0)
 
             return JsonResponse({"success": "OK"}, status=200)
+
+
+class WordInsertionByStoryView(views.APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    async def get(self, request, id):
+        url = "http://18.184.139.204/tokenize"
+        sentences = Sentence.objects.filter(
+            story=id)
+
+        for sentence in sentences:
+            async with httpx.AsyncClient(timeout=TIMEOUT) as client:
+                data = {"sentence": sentence.text,
+                        'language': sentence.language.code}
+                response = await client.post(url, json=data)
+                body = response.json()
+                print(body)
+
+                await process_word_json(body, sentence)
+
+        return JsonResponse({"success": "OK"}, status=200)
 
 
 class StoryView(views.APIView):
@@ -173,16 +225,3 @@ class StoryView(views.APIView):
                                           story_title=F('title'))]
 
         return JsonResponse(stories, safe=False)
-
-    async def post(self, request, *args, **kwargs):
-        l1 = request.data.get('l1')
-        voice_id_l1 = request.data.get('voice_id_l1')
-        l2 = request.data.get('l2')
-        voice_id_l2 = request.data.get('voice_id_l2')
-        level = request.data.get('level')
-        theme = request.data.get('theme')
-        characters = request.data.get('characters')
-        length = request.data.get('length')
-        generate_image = request.data.get('generate_image', False)
-
-        return JsonResponse({'status': 'success'})

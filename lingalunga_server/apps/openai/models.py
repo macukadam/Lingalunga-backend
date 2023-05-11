@@ -5,41 +5,6 @@ from lingalunga_server.apps.accounts.models import User
 # Create your models here.
 
 
-class Word(models.Model):
-    text = models.CharField(max_length=255)
-    dep = models.CharField(max_length=255)
-    head = models.CharField(max_length=255)
-    lemma = models.CharField(max_length=255)
-    pos = models.CharField(max_length=255)
-    tag = models.CharField(max_length=255)
-    is_alpha = models.BooleanField()
-    is_stop = models.BooleanField()
-    is_punct = models.BooleanField()
-    is_space = models.BooleanField()
-    is_digit = models.BooleanField()
-    is_currency = models.BooleanField()
-    is_quote = models.BooleanField()
-    is_bracket = models.BooleanField()
-    is_left_punct = models.BooleanField()
-    is_right_punct = models.BooleanField()
-    is_title = models.BooleanField()
-    is_upper = models.BooleanField()
-    is_lower = models.BooleanField()
-    is_oov = models.BooleanField()
-    is_sent_start = models.BooleanField()
-    is_sent_end = models.BooleanField()
-    index = models.IntegerField()
-    idx = models.IntegerField()
-    text_with_ws = models.CharField(max_length=255)
-    sentiment = models.FloatField()
-    ent_type = models.CharField(max_length=255)
-    ent_iob = models.CharField(max_length=255)
-    ent_kb_id = models.CharField(max_length=255, blank=True, null=True)
-    ent_id = models.CharField(max_length=255, blank=True, null=True)
-    parent = models.ManyToManyField(
-        'self', null=True, blank=True, related_name='parent_word')
-
-
 class Language(models.Model):
     name = models.CharField(max_length=100)
     code = models.CharField(max_length=3)
@@ -94,7 +59,42 @@ class Sentence(models.Model):
         Voice, on_delete=models.CASCADE, null=True, blank=True)
     language = models.ForeignKey(Language, on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
-    words = models.ManyToManyField(Word, related_name='languages')
 
     def __str__(self):
         return self.text
+
+
+class Word(models.Model):
+    text = models.CharField(max_length=255)
+    dep = models.CharField(max_length=255)
+    head = models.CharField(max_length=255)
+    lemma = models.CharField(max_length=255)
+    pos = models.CharField(max_length=255)
+    tag = models.CharField(max_length=255)
+    is_alpha = models.BooleanField()
+    is_stop = models.BooleanField()
+    is_punct = models.BooleanField()
+    is_space = models.BooleanField()
+    is_digit = models.BooleanField()
+    is_currency = models.BooleanField()
+    is_quote = models.BooleanField()
+    is_bracket = models.BooleanField()
+    is_left_punct = models.BooleanField()
+    is_right_punct = models.BooleanField()
+    is_title = models.BooleanField()
+    is_upper = models.BooleanField()
+    is_lower = models.BooleanField()
+    is_oov = models.BooleanField()
+    is_sent_start = models.BooleanField()
+    is_sent_end = models.BooleanField()
+    index = models.IntegerField()
+    idx = models.IntegerField()
+    text_with_ws = models.CharField(max_length=255)
+    sentiment = models.FloatField()
+    ent_type = models.CharField(max_length=255)
+    ent_iob = models.CharField(max_length=255)
+    ent_kb_id = models.CharField(max_length=255, blank=True, null=True)
+    ent_id = models.CharField(max_length=255, blank=True, null=True)
+    parent = models.ManyToManyField(
+        'self', null=True, blank=True, related_name='parent_word')
+    sentence = models.ForeignKey(Sentence, on_delete=models.CASCADE)

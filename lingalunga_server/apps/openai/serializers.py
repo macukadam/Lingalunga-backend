@@ -26,7 +26,7 @@ class StorySerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-async def process_word_json(data, parent=None):
+async def process_word_json(data, sentence):
     words = []
     for item in data:
         print('Word is ', item.get('text'))
@@ -61,16 +61,13 @@ async def process_word_json(data, parent=None):
             ent_iob=item.get('ent_iob'),
             ent_kb_id=item.get('ent_kb_id'),
             ent_id=item.get('ent_id'),
+            sentence=sentence
         )
         await word.asave()
-        print('Word saved')
         words.append(word)
 
     for idx, item in enumerate(data):
         parent_word = words[idx]
         for index in item.get('children', []):
-            print('Index is ', index)
-            pass
-            index = int(index)
-            child_word = words[index]
+            child_word = words[int(index)]
             await child_word.parent.aadd(parent_word)
