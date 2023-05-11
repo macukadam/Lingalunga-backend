@@ -1,4 +1,3 @@
-import json
 import httpx
 from django.db.models import F
 from .serializers import StorySerializer, process_word_json
@@ -33,7 +32,6 @@ async def call_word_generation(id):
                     'language': sentence.language.code}
             response = await client.post(url, json=data)
             body = response.json()
-            print(body)
 
             await process_word_json(body, sentence)
 
@@ -110,7 +108,6 @@ class StoryRequestView(views.APIView):
 
     async def post(self, request):
         print("POST request received")
-        print(request.data)
         user = request.user
 
         story_params = StoryParams(**request.data, user=user)
@@ -192,7 +189,6 @@ class WordInsertionByStoryView(views.APIView):
                         'language': sentence.language.code}
                 response = await client.post(url, json=data)
                 body = response.json()
-                print(body)
 
                 await process_word_json(body, sentence)
 
