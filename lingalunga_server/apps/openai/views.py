@@ -1,6 +1,5 @@
 import httpx
 from django.db.models import F
-from .serializers import StorySerializer, process_word_json
 from rest_framework import generics
 from adrf import views
 from lingalunga_server.apps.openai.tasks import generate_story
@@ -8,6 +7,7 @@ from rest_framework import permissions
 from django.http import JsonResponse
 from .models import Story, Sentence, Language, StoryParams, Word
 from lingalunga_server.apps.s3.models import Voice
+from .serializers import StorySerializer, process_word_json
 from lingalunga_server.apps.s3.tasks import \
     synthesize_speech_and_upload_to_s3, upload_image_to_s3
 from lingalunga_server.celery import app
@@ -32,12 +32,7 @@ async def call_word_generation(id):
                     'language': sentence.language.code}
             response = await client.post(url, json=data)
             body = response.json()
-            for item in body:
-                word = Word(
-                    *item,
-                    sentence=sentence
-                )
-                await word.asave()
+            await process_word_json(body, sentence)
 
 
 async def save_story(l1, l2, level, theme, characters, length, generate_image):
@@ -107,11 +102,18 @@ async def save_story(l1, l2, level, theme, characters, length, generate_image):
     return story
 
 
+class TestWordInsertion(views.APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    async def post(self, request, id):
+        generate_words.delay(id)
+        return JsonResponse({'success': 'OK'}, status=201)
+
+
 class StoryRequestView(views.APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     async def post(self, request):
-        print("POST request received")
         user = request.user
 
         story_params = StoryParams(**request.data, user=user)
