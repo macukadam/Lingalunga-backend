@@ -32,8 +32,12 @@ async def call_word_generation(id):
                     'language': sentence.language.code}
             response = await client.post(url, json=data)
             body = response.json()
-
-            await process_word_json(body, sentence)
+            for item in body:
+                word = Word(
+                    *item,
+                    sentence=sentence
+                )
+                await word.asave()
 
 
 async def save_story(l1, l2, level, theme, characters, length, generate_image):
@@ -167,8 +171,13 @@ class WordView(views.APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     async def get(self, request, id):
-        words = [w async for w in Word.objects.filter(sentence__id=id).values()]
-        return JsonResponse({"success": "OK", "words": words}, status=200)
+        words = [w async for w in Word.objects.prefetch_related('parent')
+                 .filter(sentence__id=id).all()]
+
+        for word in words:
+            print(word.parent)
+
+        return JsonResponse({"success": "OK"})
 
 
 class StoryView(views.APIView):
