@@ -53,7 +53,7 @@ async def process_word_json(data, sentence):
             ent_iob=item.get('ent_iob'),
             ent_kb_id=item.get('ent_kb_id'),
             ent_id=item.get('ent_id'),
-            childeren=item.get('children'),
+            children=item.get('children'),
             sentence=sentence
         )
         await word.asave()

@@ -95,5 +95,5 @@ class Word(models.Model):
     ent_iob = models.CharField(max_length=255)
     ent_kb_id = models.CharField(max_length=255, blank=True, null=True)
     ent_id = models.CharField(max_length=255, blank=True, null=True)
-    childeren = models.JSONField()
+    children = models.JSONField()
     sentence = models.ForeignKey(Sentence, on_delete=models.CASCADE)
