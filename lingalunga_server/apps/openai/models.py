@@ -2,8 +2,6 @@ from django.db import models
 from lingalunga_server.apps.s3.models import Voice
 from lingalunga_server.apps.accounts.models import User
 
-# Create your models here.
-
 
 class Language(models.Model):
     name = models.CharField(max_length=100)
@@ -97,3 +95,18 @@ class Word(models.Model):
     ent_id = models.CharField(max_length=255, blank=True, null=True)
     children = models.JSONField()
     sentence = models.ForeignKey(Sentence, on_delete=models.CASCADE)
+
+
+class SavedWord(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    word = models.ForeignKey(Word, on_delete=models.CASCADE)
+    story = models.ForeignKey(Story, on_delete=models.CASCADE)
+    sentence = models.ForeignKey(Sentence, on_delete=models.CASCADE)
+    translation = models.CharField(max_length=255, null=False, blank=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
+class CompletedStory(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    story = models.ForeignKey(Story, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)

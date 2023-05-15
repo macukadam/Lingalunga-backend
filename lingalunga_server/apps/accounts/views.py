@@ -1,20 +1,110 @@
+import json
 import traceback
-from social_django.utils import load_strategy
-from social_core.exceptions import AuthException
-from social_core.backends.google import GoogleOAuth2
+
+from adrf import views as adrf_views
+from django.contrib.auth.tokens import default_token_generator
+from django.utils.encoding import force_str
+from django.utils.http import urlsafe_base64_decode
+from django.http import HttpResponse, JsonResponse
 from rest_framework import status, permissions, views
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
-from lingalunga_server.apps.accounts.serializers import UserRegistrationSerializer
 from rest_framework_simplejwt.views import TokenRefreshView
-from django.utils.http import urlsafe_base64_decode
-from django.utils.encoding import force_str
-from django.contrib.auth.tokens import default_token_generator
-from django.http import HttpResponse
-from lingalunga_server.apps.accounts.utils import send_verification_email,\
-    google_get_or_create_user
-from lingalunga_server.apps.accounts.models import User
+from social_django.utils import load_strategy
+from social_core.exceptions import AuthException
+from social_core.backends.google import GoogleOAuth2
 from lingalunga_server.apps.accounts.utils import generate_email_verification_token, authenticate
+from lingalunga_server.apps.accounts.utils import send_verification_email, google_get_or_create_user
+from lingalunga_server.apps.accounts.models import User
+from lingalunga_server.apps.accounts.serializers import UserRegistrationSerializer
+from lingalunga_server.apps.openai.models import SavedWord, CompletedStory
+
+
+class CompletedStoryView(adrf_views.APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    async def post(self, request):
+        data = json.loads(request.body)
+        user = request.user
+
+        story_id = data.get('story')
+
+        try:
+            await CompletedStory.objects.aget(id=story_id, user=user)
+        except CompletedStory.DoesNotExist:
+            await CompletedStory(
+                user=user,
+                story_id=story_id
+            ).asave()
+
+        return JsonResponse({"status": "OK"}, status=201)
+
+    async def get(self, request):
+        user = request.user
+        id = request.GET.get('id')
+
+        if id:
+            completed_stories = [s async for s in CompletedStory.objects
+                                 .filter(user=user, id=id).values()]
+        else:
+            completed_stories = [s async for s in CompletedStory.objects
+                                 .filter(user=user).values()]
+
+        return JsonResponse({"completed_stories":
+                             completed_stories}, status=200)
+
+
+class SavedWordView(adrf_views.APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    async def post(self, request):
+        data = json.loads(request.body)
+        user = request.user
+
+        word_id = data.get('word')
+        sentence_id = data.get('sentence')
+        story_id = data.get('story')
+
+        try:
+            await SavedWord.objects.aget(sentence_id=sentence_id,
+                                         word_id=word_id,
+                                         story_id=story_id,
+                                         user=user)
+        except SavedWord.DoesNotExist:
+            await SavedWord(
+                user=user,
+                word_id=word_id,
+                sentence_id=sentence_id,
+                story_id=story_id,
+                translation=data.get('translation'),
+            ).asave()
+
+        return JsonResponse({'status': 'OK'}, status=201)
+
+    async def delete(self, request):
+        id = request.GET.get('id', None)
+        user = request.user
+
+        word = await SavedWord.objects.aget(id=id, user=user)
+        await word.adelete()
+        return JsonResponse({"detail": "Deleted"}, status=204)
+
+    async def get(self, request):
+        id = request.GET.get('id', None)
+        user = request.user
+
+        if id:
+            saved_words = [s async for s in SavedWord.objects
+                           .filter(user=user, id=id)
+                           .values('id', 'word__text', 'translation',
+                                   'sentence__id', 'story__id')]
+        else:
+            saved_words = [s async for s in SavedWord.objects
+                           .filter(user=user)
+                           .values('id', 'word__text', 'translation',
+                                   'sentence__id', 'story__id')]
+
+        return JsonResponse({"saved_words": saved_words}, status=200)
 
 
 class VerifyEmailView(views.APIView):
@@ -26,14 +116,14 @@ class VerifyEmailView(views.APIView):
             uid = force_str(urlsafe_base64_decode(uidb64))
             user = User.objects.get(pk=uid)
         except (TypeError, ValueError, OverflowError, User.DoesNotExist):
-            return HttpResponse('Activation link is invalid!')
+            return HttpResponse(b'Activation link is invalid!')
 
         if default_token_generator.check_token(user, token):
             user.is_active = True
             user.save()
-            return HttpResponse('Email verification successful.')
+            return HttpResponse(b'Email verification successful.')
         else:
-            return HttpResponse('Email verification failed.')
+            return HttpResponse(b'Email verification failed.')
 
 
 class RefreshTokenView(TokenRefreshView):
@@ -134,8 +224,8 @@ class GoogleLoginView(views.APIView):
 class UpdateAppData(views.APIView):
     permission_classes = [permissions.IsAuthenticated]
 
-    def post(self, request):
+    async def post(self, request):
         user = request.user
         user.app_data = request.data
-        user.save()
+        user.asave()
         return Response(status=status.HTTP_200_OK)

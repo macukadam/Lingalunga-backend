@@ -1,6 +1,6 @@
 from django.urls import path
 from .views import RegisterView, LoginView, RefreshTokenView, \
-    GoogleLoginView, UpdateAppData
+    GoogleLoginView, UpdateAppData, SavedWordView, CompletedStoryView
 from social_django.views import complete
 
 urlpatterns = [
@@ -11,4 +11,7 @@ urlpatterns = [
     path('google/callback/', complete,
          {'backend': 'google-oauth2'}, name='google-oauth2-callback'),
     path('update-app-data/', UpdateAppData.as_view(), name='update_app_data'),
+    path('save-word/', SavedWordView.as_view(), name='saved_words'),
+    path('completed-stories/', CompletedStoryView.as_view(),
+         name='completed_stories'),
 ]
