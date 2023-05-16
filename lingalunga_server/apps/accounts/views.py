@@ -87,7 +87,7 @@ class SavedWordView(adrf_views.APIView):
 
         word = await SavedWord.objects.aget(id=id, user=user)
         await word.adelete()
-        return JsonResponse({"detail": "Deleted"}, status=204)
+        return JsonResponse({'status': 'OK', 'detail': 'Deleted'}, status=201)
 
     async def get(self, request):
         id = request.GET.get('id', None)
