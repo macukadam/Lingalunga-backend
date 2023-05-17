@@ -77,7 +77,7 @@ class SavedWordView(adrf_views.APIView):
                 user=user,
                 word_id=word_id,
                 sentence_id=sentence_id,
-                translation_id=translation_sentence_id,
+                translation_sentence_id=translation_sentence_id,
                 story_id=story_id,
                 translation=data.get('translation'),
             ).asave()
