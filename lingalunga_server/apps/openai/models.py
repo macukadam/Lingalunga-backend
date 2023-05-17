@@ -102,6 +102,8 @@ class SavedWord(models.Model):
     word = models.ForeignKey(Word, on_delete=models.CASCADE)
     story = models.ForeignKey(Story, on_delete=models.CASCADE)
     sentence = models.ForeignKey(Sentence, on_delete=models.CASCADE)
+    translation_sentence = models.ForeignKey(
+        Sentence, on_delete=models.CASCADE, related_name='translation_sentence')
     translation = models.CharField(max_length=255, null=False, blank=False)
     created_at = models.DateTimeField(auto_now_add=True)
 

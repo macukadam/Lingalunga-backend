@@ -6,6 +6,7 @@ from django.contrib.auth.tokens import default_token_generator
 from django.utils.encoding import force_str
 from django.utils.http import urlsafe_base64_decode
 from django.http import HttpResponse, JsonResponse
+from django.utils.translation.trans_real import translation
 from rest_framework import status, permissions, views
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -63,6 +64,7 @@ class SavedWordView(adrf_views.APIView):
 
         word_id = data.get('word')
         sentence_id = data.get('sentence')
+        translation_sentence_id = data.get('translation_sentence')
         story_id = data.get('story')
 
         try:
@@ -75,6 +77,7 @@ class SavedWordView(adrf_views.APIView):
                 user=user,
                 word_id=word_id,
                 sentence_id=sentence_id,
+                translation_id=translation_sentence_id,
                 story_id=story_id,
                 translation=data.get('translation'),
             ).asave()
@@ -97,12 +100,16 @@ class SavedWordView(adrf_views.APIView):
             saved_words = [s async for s in SavedWord.objects
                            .filter(user=user, id=id)
                            .values('id', 'word__text', 'translation',
-                                   'sentence__id', 'story__id')]
+                                   'sentence__id', 'sentence__text',
+                                   'translation_sentence__id',
+                                   'translation_sentence__text', 'story__id')]
         else:
             saved_words = [s async for s in SavedWord.objects
                            .filter(user=user)
                            .values('id', 'word__text', 'translation',
-                                   'sentence__id', 'story__id')]
+                                   'sentence__id', 'sentence__text',
+                                   'translation_sentence__id',
+                                   'translation_sentence__text', 'story__id')]
 
         return JsonResponse({"saved_words": saved_words}, status=200)
 
