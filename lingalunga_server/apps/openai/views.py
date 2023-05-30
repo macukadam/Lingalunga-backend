@@ -40,7 +40,7 @@ async def save_story(l1, l2, level, theme, characters, length, generate_image):
     target_language = await Language.objects.aget(name=l2)
 
     v1 = Voice.objects.filter(language_name__icontains=l1,
-                              supported_engines__name='natural').values_list(
+                              supported_engines__name='neural').values_list(
         'id', 'supported_engines__name').order_by('?').first()
 
     if not v1:
