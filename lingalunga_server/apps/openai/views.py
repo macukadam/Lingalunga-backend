@@ -48,7 +48,7 @@ async def save_story(l1, l2, level, theme, characters, length, generate_image):
             'id', 'supported_engines__name').order_by('?').first()
 
     v2 = Voice.objects.filter(language_name__icontains=l2,
-                              supported_engines__name='natural').values_list(
+                              supported_engines__name='neural').values_list(
         'id', 'supported_engines__name').order_by('?').first()
 
     if not v2:
