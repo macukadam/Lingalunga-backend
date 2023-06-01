@@ -6,7 +6,7 @@ class WelcomeView(views.APIView):
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
-        return render(request, 'index.html')
+        return render(request, 'index2.html')
 
 
 class Privacy(views.APIView):
