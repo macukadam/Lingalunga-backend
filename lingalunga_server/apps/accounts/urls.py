@@ -1,7 +1,8 @@
+from social_django.views import complete
 from django.urls import path
 from .views import RegisterView, LoginView, RefreshTokenView, \
-    GoogleLoginView, UpdateAppData, SavedWordView, CompletedStoryView
-from social_django.views import complete
+    GoogleLoginView, UpdateAppData, SavedWordView, CompletedStoryView, \
+    ForgetPasswordView
 
 urlpatterns = [
     path('register/', RegisterView.as_view(), name='register'),
@@ -14,4 +15,9 @@ urlpatterns = [
     path('save-word/', SavedWordView.as_view(), name='saved_words'),
     path('completed-stories/', CompletedStoryView.as_view(),
          name='completed_stories'),
-]
+    path('password-reset/', ForgetPasswordView.as_view(),
+         name='password_reset'),
+    path('password-reset-success/', ForgetPasswordView.password_reset_success,
+         name='password_reset_success'),
+    path('password-reset/<uidb64>/<token>/', ForgetPasswordView.as_view(),
+         name='password_reset_confirm'),]

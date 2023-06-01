@@ -1,13 +1,15 @@
+import re
 import json
 import traceback
 
 from adrf import views as adrf_views
-from django.contrib.auth.tokens import default_token_generator
-from django.utils.encoding import force_str
-from django.utils.http import urlsafe_base64_decode
+from django.utils.encoding import force_str, force_bytes
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.http import HttpResponse, JsonResponse
-from django.utils.translation.trans_real import translation
-from rest_framework import status, permissions, views
+from django.shortcuts import render
+from django.contrib.auth.tokens import default_token_generator
+from rest_framework import status
+from rest_framework import permissions, views
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenRefreshView
@@ -15,7 +17,8 @@ from social_django.utils import load_strategy
 from social_core.exceptions import AuthException
 from social_core.backends.google import GoogleOAuth2
 from lingalunga_server.apps.accounts.utils import generate_email_verification_token, authenticate
-from lingalunga_server.apps.accounts.utils import send_verification_email, google_get_or_create_user
+from lingalunga_server.apps.accounts.utils import send_verification_email, \
+    google_get_or_create_user, send_reset_password_email
 from lingalunga_server.apps.accounts.models import User
 from lingalunga_server.apps.accounts.serializers import UserRegistrationSerializer
 from lingalunga_server.apps.openai.models import SavedWord, CompletedStory
@@ -117,7 +120,7 @@ class SavedWordView(adrf_views.APIView):
 class VerifyEmailView(views.APIView):
     permission_classes = [permissions.AllowAny]
 
-    def get(self, request, uidb64, token):
+    def get(self, _, uidb64, token):
         user = None
         try:
             uid = force_str(urlsafe_base64_decode(uidb64))
@@ -162,6 +165,68 @@ class RegisterView(views.APIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ForgetPasswordView(views.APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def password_reset_success(self, request):
+        return render(request, 'password_reset_success.html')
+
+    def get(self, request, uidb64=None, token=None):
+        context = {
+            'uidb64': uidb64,
+            'token': token,
+        }
+
+        return render(request, 'reset_password.html', context)
+
+    def post(self, request):
+        email = request.data.get('email')
+        if email:
+            try:
+                user = User.objects.get(email=email)
+                uid = urlsafe_base64_encode(force_bytes(user.pk))
+                token = default_token_generator.make_token(user)
+                send_reset_password_email(request, user, uid, token)
+
+                return Response({'status': 'OK'}, status=status.HTTP_200_OK)
+            except User.DoesNotExist:
+                pass
+        return Response({'error': 'Invalid Email'},
+                        status=status.HTTP_400_BAD_REQUEST)
+
+    def patch(self, request, uidb64, token):
+        try:
+            uid = force_str(urlsafe_base64_decode(uidb64))
+            user = User.objects.get(pk=uid)
+        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+            return Response({'error': 'Invalid link'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        if default_token_generator.check_token(user, token):
+            new_password = request.data.get('password')
+            if new_password:
+                # check password validity
+                if len(new_password) < 8:
+                    return Response({'error': 'Password too short. It should be at least 8 characters.'}, status=status.HTTP_400_BAD_REQUEST)
+                elif not re.search('[A-Za-z]', new_password):
+                    return Response({'error': 'Password should have at least one letter.'}, status=status.HTTP_400_BAD_REQUEST)
+                elif not re.search('[0-9]', new_password):
+                    return Response({'error': 'Password should have at least one number.'}, status=status.HTTP_400_BAD_REQUEST)
+                elif not re.search('[^A-Za-z0-9]', new_password):
+                    return Response({'error': 'Password should have at least one special character.'}, status=status.HTTP_400_BAD_REQUEST)
+                else:
+                    user.set_password(new_password)
+                    user.save()
+                    return Response({'status': 'Password reset successful.'},
+                                    status=status.HTTP_200_OK)
+            else:
+                return Response({'error': 'Password not provided'},
+                                status=status.HTTP_400_BAD_REQUEST)
+        else:
+            return Response({'error': 'Invalid link'},
+                            status=status.HTTP_400_BAD_REQUEST)
 
 
 class LoginView(views.APIView):

@@ -1,3 +1,6 @@
+from django.utils.html import strip_tags
+from django.template.loader import render_to_string
+from django.core.mail import EmailMultiAlternatives
 from django.conf import settings
 from django.core.mail import send_mail
 from django.urls import reverse
@@ -15,6 +18,25 @@ def send_verification_email(request, user, uid, token):
     from_email = settings.DEFAULT_FROM_EMAIL
     to_email = user.email
     send_mail(subject, message, from_email, [to_email], fail_silently=False)
+
+
+def send_reset_password_email(request, user, uid, token):
+    verification_url = request.build_absolute_uri(
+        reverse('password_reset_confirm', args=[uid, token]))
+
+    subject = 'Password Reset'
+    from_email = settings.DEFAULT_FROM_EMAIL
+    to_email = user.email
+
+    html_content = render_to_string('reset_password_email.html',
+                                    {'username': user.username,
+                                     'verification_url': verification_url})
+
+    text_content = strip_tags(html_content)
+
+    msg = EmailMultiAlternatives(subject, text_content, from_email, [to_email])
+    msg.attach_alternative(html_content, "text/html")
+    msg.send()
 
 
 def generate_email_verification_token(user: User):
