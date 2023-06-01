@@ -217,6 +217,8 @@ class ForgetPasswordView(views.APIView):
                     return Response({'error': 'Password should have at least one number.'}, status=status.HTTP_400_BAD_REQUEST)
                 elif not re.search('[^A-Za-z0-9]', new_password):
                     return Response({'error': 'Password should have at least one special character.'}, status=status.HTTP_400_BAD_REQUEST)
+                elif user.check_password(new_password):
+                    return Response({'error': 'New password must be different from the old one.'}, status=status.HTTP_400_BAD_REQUEST)
                 else:
                     user.set_password(new_password)
                     user.save()
