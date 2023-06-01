@@ -167,11 +167,12 @@ class RegisterView(views.APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+def password_reset_success(request):
+    return render(request, 'reset_password_success.html')
+
+
 class ForgetPasswordView(views.APIView):
     permission_classes = [permissions.AllowAny]
-
-    def password_reset_success(self, request):
-        return render(request, 'password_reset_success.html')
 
     def get(self, request, uidb64=None, token=None):
         context = {
