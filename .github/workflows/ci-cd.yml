@@ -49,4 +49,5 @@ jobs:
         scp -o UserKnownHostsFile=~/.ssh/known_hosts -i ~/.ssh/private_key -r ~/.env ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/home/ec2-user/Lingalunga-backend/.env
         ssh -o UserKnownHostsFile=~/.ssh/known_hosts -i ~/.ssh/private_key ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd /home/ec2-user/Lingalunga-backend && docker-compose down && docker-compose -f docker-compose.yml up -d --build"
         ssh -o UserKnownHostsFile=~/.ssh/known_hosts -i ~/.ssh/private_key ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd /home/ec2-user/Lingalunga-backend && docker-compose exec lingalunga python manage.py migrate"
+        ssh -o UserKnownHostsFile=~/.ssh/known_hosts -i ~/.ssh/private_key ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd /home/ec2-user/Lingalunga-backend && docker-compose exec lingalunga python manage.py collectstatic --noinput"
         ssh -o UserKnownHostsFile=~/.ssh/known_hosts -i ~/.ssh/private_key ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "rm /home/ec2-user/Lingalunga-backend/.env"
