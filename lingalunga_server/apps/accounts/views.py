@@ -16,9 +16,10 @@ from rest_framework_simplejwt.views import TokenRefreshView
 from social_django.utils import load_strategy
 from social_core.exceptions import AuthException
 from social_core.backends.google import GoogleOAuth2
+from social_core.backends.facebook import FacebookOAuth2
 from lingalunga_server.apps.accounts.utils import generate_email_verification_token, authenticate
 from lingalunga_server.apps.accounts.utils import send_verification_email, \
-    google_get_or_create_user, send_reset_password_email
+    get_or_create_user, send_reset_password_email
 from lingalunga_server.apps.accounts.models import User
 from lingalunga_server.apps.accounts.serializers import UserRegistrationSerializer
 from lingalunga_server.apps.openai.models import SavedWord, CompletedStory
@@ -262,17 +263,26 @@ class LoginView(views.APIView):
         return Response(response_data, status=status.HTTP_200_OK)
 
 
-class GoogleLoginView(views.APIView):
+class SocialLoginView(views.APIView):
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
         access_token = request.data.get('access_token')
         email = request.data.get('email')
+        oauth_type = request.data.get('oauth_type', None)
 
         try:
             strategy = load_strategy(request)
-            backend = GoogleOAuth2(strategy=strategy)
-            user = google_get_or_create_user(
+
+            if oauth_type == 'google':
+                backend = GoogleOAuth2(strategy=strategy)
+            elif oauth_type == 'facebook':
+                backend = FacebookOAuth2(strategy=strategy)
+            else:
+                return Response({'error': 'Invalid OAuth type.'},
+                                status=status.HTTP_400_BAD_REQUEST)
+
+            user = get_or_create_user(
                 backend, access_token, email=email)
 
             if user is None:

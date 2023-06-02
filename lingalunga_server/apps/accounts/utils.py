@@ -66,7 +66,7 @@ def authenticate(email=None, password=None):
         raise e
 
 
-def google_get_or_create_user(backend, access_token, email):
+def get_or_create_user(backend, access_token, email):
     try:
         user = User.objects.get(email=email)
     except User.DoesNotExist:
