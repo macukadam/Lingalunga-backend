@@ -1,4 +1,4 @@
-from django.db.models import Q, F
+from django.db.models import Q
 from django.core.paginator import Paginator
 import httpx
 from rest_framework import generics
@@ -200,6 +200,10 @@ class StoryView(views.APIView):
 
         stories = [{'id': s.id, 'image_url': s.image_url, 'story_title': s.title
                     if s.native_language.name == l1
-                    else s.title_translation} for s in paginated_stories]
+                    else s.title_translation,
+                    'swiped': False
+                    if s.native_language.name == l1
+                    else True
+                    } for s in paginated_stories]
 
         return JsonResponse(stories, safe=False)
