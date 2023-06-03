@@ -1,5 +1,6 @@
+from django.db.models import Q, F
+from django.core.paginator import Paginator
 import httpx
-from django.db.models import F
 from rest_framework import generics
 from adrf import views
 from lingalunga_server.apps.openai.tasks import generate_story
@@ -185,22 +186,20 @@ class StoryView(views.APIView):
         l1 = request.data.get('l1')
         l2 = request.data.get('l2')
         level = request.data.get('level')
-        reverse = request.data.get('reverse')
 
-        if reverse:
-            stories = [s async for s in Story.objects.filter(
-                native_language__name=l2,
-                target_language__name=l1,
-                story_level=level).values('id',
-                                          'image_url',
-                                          story_title=F('title_translation'))]
+        page = request.data.get('page', 1)  # default to page 1 if not provided
+        page_size = request.data.get('page_size', 10)
 
-        else:
-            stories = [s async for s in Story.objects.filter(
-                native_language__name=l1,
-                target_language__name=l2,
-                story_level=level).values('id',
-                                          'image_url',
-                                          story_title=F('title'))]
+        story_objects = [s async for s in Story.objects.filter(
+            Q(native_language__name=l1, target_language__name=l2) |
+            Q(native_language__name=l2, target_language__name=l1),
+            story_level=level)]
+
+        paginator = Paginator(story_objects, page_size)
+        paginated_stories = paginator.get_page(page)
+
+        stories = [{'id': s.id, 'image_url': s.image_url, 'story_title': s.title
+                    if s.native_language.name == l1
+                    else s.title_translation} for s in paginated_stories]
 
         return JsonResponse(stories, safe=False)
