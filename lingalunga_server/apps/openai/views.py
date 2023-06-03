@@ -12,6 +12,7 @@ from lingalunga_server.apps.s3.tasks import \
     synthesize_speech_and_upload_to_s3, upload_image_to_s3
 from lingalunga_server.celery import app
 import asyncio
+from django.conf import settings
 
 TIMEOUT = 240
 
@@ -22,7 +23,7 @@ def generate_words(id):
 
 
 async def call_word_generation(id):
-    url = "http://18.184.139.204/tokenize"
+    url = f"http://{settings.TOKENIZER_IP}/tokenize"
 
     sentences = [s async for s in Sentence.objects.filter(story_id=id)]
 
