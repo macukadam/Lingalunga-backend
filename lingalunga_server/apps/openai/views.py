@@ -1,9 +1,9 @@
 from django.db.models import Q
-from django.core.paginator import Paginator
+from django.core.paginator import Paginator, EmptyPage
 import httpx
 from rest_framework import generics
 from adrf import views
-from lingalunga_server.apps.openai.tasks import generate_story
+from lingalunga_server.apps.openai.tasks import generate_image_url, generate_story
 from rest_framework import permissions
 from django.http import JsonResponse
 from .models import Story, Sentence, Language, StoryParams, Word
@@ -35,6 +35,79 @@ async def call_word_generation(id):
             response = await client.post(url, json=data)
             body = response.json()
             await process_word_json(body, sentence)
+
+async def save_story_no_ai(l1, l2, level, story, theme, characters, generate_image):
+    native_language = await Language.objects.aget(name=l1)
+    target_language = await Language.objects.aget(name=l2)
+
+    v1 = Voice.objects.filter(language_name__icontains=l1,
+                              supported_engines__name='neural').values_list(
+        'id', 'supported_engines__name').order_by('?').first()
+
+    if not v1:
+        v1 = Voice.objects.filter(language_name__icontains=l1).values_list(
+            'id', 'supported_engines__name').order_by('?').first()
+
+    v2 = Voice.objects.filter(language_name__icontains=l2,
+                              supported_engines__name='neural').values_list(
+        'id', 'supported_engines__name').order_by('?').first()
+
+    if not v2:
+        v2 = Voice.objects.filter(language_name__icontains=l2).values_list(
+            'id', 'supported_engines__name').order_by('?').first()
+
+    voices = [v1, v2]
+
+    voice_dict = {name: min(val for n, val in voices if n == name)
+                  for name, _ in voices}
+
+    engine_l1 = list(voice_dict.values())[0]
+    engine_l2 = list(voice_dict.values())[1]
+
+
+    story_splited = story.replace("\n\n", "\n")
+    story_splited = story_splited.split('\n')
+    title = story_splited.pop(0)
+    title_translation = story_splited.pop(0)
+
+    image_url = ''
+    if generate_image:
+        image_url = await generate_image_url(title, theme, characters)
+
+    key = None
+    if generate_image:
+        key = await upload_image_to_s3(image_url, title)
+
+    story = Story(title=title, title_translation=title_translation,
+                  native_language=native_language,
+                  target_language=target_language,
+                  story_level=level,
+                  story_text=story,
+                  image_url=key)
+
+    await story.asave()
+
+    print("Creating voice objects...")
+    for i in range(0, len(story_splited), 2):
+        native_sentence = story_splited[i]
+        target_sentence = story_splited[i + 1]
+        _, task_id = await synthesize_speech_and_upload_to_s3(native_sentence, voice_id=v1[0], engine=engine_l1)
+        native_sentence = Sentence(text=native_sentence,
+                                   language=native_language,
+                                   audio_key=task_id, story=story,
+                                   voice_id=v1[0])
+        await native_sentence.asave()
+
+        _, task_id = await synthesize_speech_and_upload_to_s3(target_sentence, voice_id=v2[0], engine=engine_l2)
+        target_sentence = Sentence(text=target_sentence,
+                                   language=target_language,
+                                   audio_key=task_id, story=story,
+                                   voice_id=v2[0])
+        await target_sentence.asave()
+
+    print("Voice objects created")
+
+    return story
 
 
 async def save_story(l1, l2, level, theme, characters, length, generate_image):
@@ -111,6 +184,31 @@ class TestWordInsertion(views.APIView):
         generate_words.delay(id)
         return JsonResponse({'success': 'OK'}, status=201)
 
+
+class StoryRequestNoAIView(views.APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    async def post(self, request):
+        user = request.user
+
+        if user.is_superuser:
+            l1 = request.data['native_language']
+            l2 = request.data['target_language']
+            level = request.data['selected_level'].lower()
+            story = request.data['story']
+            characters = request.data['characters']
+            theme = request.data['theme']
+            generate_image = request.data['generate_image']
+
+            story = await save_story_no_ai(l1, l2, level, story, theme, characters,
+                                     generate_image)
+
+            generate_words.delay(story.pk)
+
+        else:
+            return JsonResponse({"error": "Your account cannot create a new story "}, status=403)
+
+        return JsonResponse({'success': 'OK'}, status=201)
 
 class StoryRequestView(views.APIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -196,7 +294,11 @@ class StoryView(views.APIView):
             story_level=level)]
 
         paginator = Paginator(story_objects, page_size)
-        paginated_stories = paginator.get_page(page)
+
+        try:
+            paginated_stories = paginator.get_page(page)
+        except EmptyPage:
+            paginated_stories = []
 
         stories = [{'id': s.id, 'image_url': s.image_url, 'story_title': s.title
                     if s.native_language.name == l1

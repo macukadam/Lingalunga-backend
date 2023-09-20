@@ -153,7 +153,7 @@ DATABASES = {
         'NAME': os.environ['POSTGRES_DB'],
         'USER': os.environ['POSTGRES_USER'],
         'PASSWORD': os.environ['POSTGRES_PASSWORD'],
-        'HOST': 'pgbouncer',
+        'HOST': 'lingalunga.com',
         'PORT': 5433,
         'CONN_MAX_AGE': 0,
     }
